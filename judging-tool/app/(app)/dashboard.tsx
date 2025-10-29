@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,6 +28,7 @@ const palette = {
   successSoft: '#E3F3E3',
 };
 
+const titleLogo = require('../../assets/images/titlelogo.png');
 const activeEvents = events.filter((event) => event.status !== 'Closed');
 
 export default function DashboardScreen() {
@@ -37,7 +39,7 @@ export default function DashboardScreen() {
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
               <Text style={styles.kicker}>Howdy, Judge!</Text>
-              <Text style={styles.title}>Your Aggies Invent weekend</Text>
+              <Image source={titleLogo} style={styles.titleLogo} resizeMode="contain" />
             </View>
             <Pressable
               onPress={() => router.push('/(app)/settings')}
@@ -156,10 +158,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  title: {
-    color: palette.text,
-    fontSize: 26,
-    fontWeight: '700',
+  titleLogo: {
+    height: 60,
+    width: 213,
     marginTop: 6,
   },
   profileBadge: {
