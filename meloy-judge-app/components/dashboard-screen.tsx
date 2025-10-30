@@ -1,10 +1,11 @@
 "use client"
 
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Screen } from "@/app/page"
-import { Calendar, MapPin, Users, Settings, Shield, TrendingUp } from "lucide-react"
+import { Calendar, MapPin, Users, Settings, Shield } from "lucide-react"
 
 interface DashboardScreenProps {
   onSelectEvent: (eventId: string) => void
@@ -44,14 +45,14 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
       <header className="border-b bg-primary backdrop-blur-sm shadow-lg">
         <div className="mx-auto flex max-w-7xl items-center justify-between p-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-white/20 shadow-md">
-              <TrendingUp className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Aggies Invent</h1>
-              <p className="text-base text-white/80">Judge Portal</p>
-            </div>
+          <div className="flex h-20 w-auto items-center justify-center rounded-xl bg-white/20 shadow-md p-2">
+            <Image
+              src="/apptitle.png"
+              alt="Meloy Program Judging Portal"
+              width={150}
+              height={80}
+              className="object-contain"
+            />
           </div>
           <div className="flex gap-3">
             {isAdmin && (
