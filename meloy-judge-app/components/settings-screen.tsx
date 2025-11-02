@@ -6,13 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft, User, Bell, Palette, Lock, AlertTriangle, Save, Trash2 } from "lucide-react"
+import { ArrowLeft, User, Bell, Palette, Lock, AlertTriangle, Save, Trash2, LogOut } from "lucide-react"
 
 interface SettingsScreenProps {
   onBack: () => void
+  onLogout: () => void
 }
 
-export function SettingsScreen({ onBack }: SettingsScreenProps) {
+export function SettingsScreen({ onBack, onLogout }: SettingsScreenProps) {
   const [name, setName] = useState("Dr. Sarah Johnson")
   const [email, setEmail] = useState("sjohnson@tamu.edu")
   const [notifications, setNotifications] = useState(true)
@@ -32,6 +33,10 @@ export function SettingsScreen({ onBack }: SettingsScreenProps) {
               <p className="text-sm text-white/80">Manage your account and preferences</p>
             </div>
           </div>
+          <Button onClick={onLogout} className="bg-white text-primary hover:bg-white/90 shadow-md">
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Button>
         </div>
       </header>
 

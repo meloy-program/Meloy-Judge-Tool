@@ -3,12 +3,13 @@
 import type React from "react"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CheckCircle2, GraduationCap } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
 
 interface LoginScreenProps {
   onLogin: (isAdmin?: boolean) => void
@@ -24,14 +25,19 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-primary to-[#3d0000] p-4">
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="space-y-3 text-center">
-          <div className="mx-auto mb-2 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
-            <GraduationCap className="h-11 w-11 text-primary-foreground" />
+          <div className="mx-auto mb-2">
+            <Image
+              src="/apptitle.png"
+              alt="Meloy Program Judging Portal"
+              width={250}
+              height={120}
+              className="object-contain"
+              style={{ filter: 'brightness(0) saturate(100%) invert(10%) sepia(90%) saturate(5000%) hue-rotate(340deg) brightness(60%) contrast(110%)' }}
+            />
           </div>
-          <CardTitle className="text-3xl font-bold text-foreground">Aggies Invent</CardTitle>
-          <CardDescription className="text-base">Judge Portal</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">

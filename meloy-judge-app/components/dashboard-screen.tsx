@@ -67,11 +67,10 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
             )}
             <Button
               variant="ghost"
-              size="icon"
               onClick={() => onNavigate("settings")}
-              className="text-white hover:bg-white/20 h-12 w-12"
+              className="text-white hover:bg-white/20 hover:text-gray-300 h-12 w-12 p-2 flex items-center justify-center"
             >
-              <Settings className="h-6 w-6" />
+              <Settings className="size-7" />
             </Button>
           </div>
         </div>

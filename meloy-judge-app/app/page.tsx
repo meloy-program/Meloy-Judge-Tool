@@ -45,6 +45,11 @@ export default function Home() {
     }
   }
 
+  const handleLogout = () => {
+    setCurrentScreen("login")
+    setIsAdmin(false)
+  }
+
   return (
     <main className="min-h-screen bg-background">
       {currentScreen === "login" && <LoginScreen onLogin={handleLogin} />}
@@ -66,7 +71,7 @@ export default function Home() {
         <LeaderboardScreen eventId={selectedEventId} onBack={handleBack} />
       )}
       {currentScreen === "admin" && <AdminScreen onBack={handleBack} />}
-      {currentScreen === "settings" && <SettingsScreen onBack={handleBack} />}
+      {currentScreen === "settings" && <SettingsScreen onBack={handleBack} onLogout={handleLogout} />}
     </main>
   )
 }
