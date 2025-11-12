@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Aggies Invent - Judge Portal",
+  title: "Meloy Judge Portal",
   description: "Judging tool for Aggies Invent competitions at Texas A&M",
   generator: "v0.app",
   icons: {
