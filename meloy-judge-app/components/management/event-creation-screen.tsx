@@ -26,7 +26,7 @@ import {
 
 interface EventCreationScreenProps {
   onBack: () => void
-  onCreateEvent: () => void
+  onCreateEvent: (eventId?: string) => void
 }
 
 type EventType = "aggies-invent" | "problems-worth-solving"
@@ -134,7 +134,9 @@ export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScre
       judges,
       teams,
     })
-    onCreateEvent()
+    // Generate a temporary event ID (in production, this would come from backend)
+    const newEventId = Date.now().toString()
+    onCreateEvent(newEventId)
   }
 
   return (
@@ -339,6 +341,7 @@ export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScre
               <div className="grid gap-6 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="primary-color" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <Palette className="mr-2 inline h-4 w-4" />
                     Primary Color
                   </Label>
                   <div className="flex items-center gap-3">
@@ -347,18 +350,19 @@ export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScre
                       type="color"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 shadow-inner"
+                      className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 p-1 shadow-inner"
                     />
                     <Input
                       type="text"
                       value={primaryColor}
                       onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-12 flex-1 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
+                      className="h-12 flex-1 rounded-xl border-slate-200 bg-white px-4 text-lg shadow-inner focus-visible:border-primary/60"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="secondary-color" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
+                    <Palette className="mr-2 inline h-4 w-4" />
                     Secondary Color
                   </Label>
                   <div className="flex items-center gap-3">
@@ -367,34 +371,32 @@ export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScre
                       type="color"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 shadow-inner"
+                      className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 p-1 shadow-inner"
                     />
                     <Input
                       type="text"
                       value={secondaryColor}
                       onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-12 flex-1 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
+                      className="h-12 flex-1 rounded-xl border-slate-200 bg-white px-4 text-lg shadow-inner focus-visible:border-primary/60"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Color Preview */}
-              <div className="rounded-2xl border border-slate-200/70 bg-slate-50/70 p-6">
-                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Theme Preview</p>
-                <div className="flex items-center gap-4">
-                  <div
-                    className="flex h-20 w-20 items-center justify-center rounded-2xl shadow-lg transition-transform hover:-translate-y-1"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <Palette className="h-8 w-8 text-white" />
-                  </div>
-                  <div
-                    className="flex h-20 flex-1 items-center justify-center rounded-2xl shadow-lg transition-transform hover:-translate-y-1"
-                    style={{ backgroundColor: secondaryColor, color: primaryColor }}
-                  >
-                    <span className="text-lg font-semibold">{sponsorName || "Sponsor Name"}</span>
-                  </div>
+              {/* Live Gradient Preview */}
+              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
+                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Live Preview</p>
+                <div
+                  className="flex h-32 items-center justify-center rounded-xl shadow-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
+                  }}
+                >
+                  {sponsorLogo && (
+                    <div className="rounded-lg bg-white/95 p-4 shadow-xl backdrop-blur-sm">
+                      <Image src={sponsorLogo} alt="Preview" width={120} height={60} className="object-contain" />
+                    </div>
+                  )}
                 </div>
               </div>
             </CardContent>

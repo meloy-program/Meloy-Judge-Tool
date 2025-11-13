@@ -8,15 +8,20 @@ import { TeamDetailScreen } from "@/components/judging/team-detail-screen"
 import { LeaderboardScreen } from "@/components/events/leaderboard-screen"
 import { AdminScreen } from "@/components/management/admin-screen"
 import { EventCreationScreen } from "@/components/management/event-creation-screen"
+import { EventManagerScreen } from "@/components/management/event-manager-screen"
+import { InsightsScreen } from "@/components/management/insights-screen"
+import { ModeratorScreen } from "@/components/management/moderator-screen"
 import { SettingsScreen } from "@/components/settings/settings-screen"
 
-export type Screen = "login" | "dashboard" | "event-detail" | "team-detail" | "leaderboard" | "admin" | "settings" | "event-creation"
+export type Screen = "login" | "dashboard" | "event-detail" | "team-detail" | "leaderboard" | "admin" | "settings" | "event-creation" | "event-manager" | "insights" | "moderator"
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("login")
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [managingEventId, setManagingEventId] = useState<string | null>(null)
+  const [previousScreen, setPreviousScreen] = useState<Screen | null>(null)
 
   const handleLogin = (admin = false) => {
     setIsAdmin(admin)
@@ -38,7 +43,19 @@ export default function Home() {
       setCurrentScreen("event-detail")
     } else if (currentScreen === "leaderboard") {
       setCurrentScreen("event-detail")
+    } else if (currentScreen === "moderator") {
+      setCurrentScreen("event-detail")
     } else if (currentScreen === "event-creation") {
+      setCurrentScreen("admin")
+    } else if (currentScreen === "event-manager") {
+      // Return to the screen we came from (either admin or event-detail)
+      if (previousScreen && (previousScreen === "event-detail" || previousScreen === "admin")) {
+        setCurrentScreen(previousScreen)
+        setPreviousScreen(null)
+      } else {
+        setCurrentScreen("admin")
+      }
+    } else if (currentScreen === "insights") {
       setCurrentScreen("admin")
     } else if (
       currentScreen === "event-detail" ||
@@ -53,8 +70,31 @@ export default function Home() {
     setCurrentScreen("event-creation")
   }
 
-  const handleEventCreated = () => {
-    setCurrentScreen("admin")
+  const handleEventCreated = (eventId?: string) => {
+    // After creating event, go to event manager to configure it
+    if (eventId) {
+      setManagingEventId(eventId)
+      setCurrentScreen("event-manager")
+    } else {
+      // Fallback if no eventId provided
+      setCurrentScreen("admin")
+    }
+  }
+
+  const handleManageEvent = (eventId: string) => {
+    setManagingEventId(eventId)
+    setPreviousScreen(currentScreen) // Remember where we came from
+    setCurrentScreen("event-manager")
+  }
+
+  const handleEventManagerSave = () => {
+    // Return to the screen we came from (either admin or event-detail)
+    if (previousScreen && (previousScreen === "event-detail" || previousScreen === "admin")) {
+      setCurrentScreen(previousScreen)
+      setPreviousScreen(null)
+    } else {
+      setCurrentScreen("admin")
+    }
   }
 
   const handleLogout = () => {
@@ -74,6 +114,9 @@ export default function Home() {
           onSelectTeam={handleSelectTeam}
           onBack={handleBack}
           onNavigate={setCurrentScreen}
+          onManageEvent={handleManageEvent}
+          onOpenModerator={() => setCurrentScreen("moderator")}
+          isAdmin={isAdmin}
         />
       )}
       {currentScreen === "team-detail" && selectedTeamId && (
@@ -82,8 +125,15 @@ export default function Home() {
       {currentScreen === "leaderboard" && selectedEventId && (
         <LeaderboardScreen eventId={selectedEventId} onBack={handleBack} />
       )}
-      {currentScreen === "admin" && <AdminScreen onBack={handleBack} onCreateEvent={handleCreateEvent} />}
+      {currentScreen === "moderator" && selectedEventId && (
+        <ModeratorScreen eventId={selectedEventId} onBack={handleBack} />
+      )}
+      {currentScreen === "admin" && <AdminScreen onBack={handleBack} onCreateEvent={handleCreateEvent} onManageEvent={handleManageEvent} />}
       {currentScreen === "event-creation" && <EventCreationScreen onBack={handleBack} onCreateEvent={handleEventCreated} />}
+      {currentScreen === "event-manager" && managingEventId && (
+        <EventManagerScreen eventId={managingEventId} onBack={handleBack} onSave={handleEventManagerSave} />
+      )}
+      {currentScreen === "insights" && <InsightsScreen onBack={handleBack} />}
       {currentScreen === "settings" && <SettingsScreen onBack={handleBack} onLogout={handleLogout} />}
     </main>
   )

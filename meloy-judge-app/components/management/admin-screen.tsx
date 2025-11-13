@@ -18,6 +18,10 @@ import {
   Sparkles,
   Clock,
   Trophy,
+  CheckCircle2,
+  Target,
+  Download,
+  Timer,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -30,6 +34,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 interface AdminScreenProps {
   onBack: () => void
   onCreateEvent: () => void
+  onManageEvent: (eventId: string) => void
 }
 
 const mockJudges = [
@@ -93,7 +98,7 @@ const teamSpotlight = {
   score: "92.4",
 }
 
-export function AdminScreen({ onBack, onCreateEvent }: AdminScreenProps) {
+export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScreenProps) {
   const [newJudgeEmail, setNewJudgeEmail] = useState("")
 
   const activeEvents = mockEvents.filter((event) => event.status === "active").length
@@ -266,17 +271,12 @@ export function AdminScreen({ onBack, onCreateEvent }: AdminScreenProps) {
                           </div>
                         </CardHeader>
                         <CardFooter className="flex flex-wrap gap-3 border-t border-slate-100/80 p-6">
-                          <Button variant="outline" className="h-11 rounded-xl border-slate-200 px-5 text-sm font-semibold">
+                          <Button 
+                            onClick={() => onManageEvent(event.id)}
+                            className="h-11 flex-1 rounded-xl bg-primary px-5 text-sm font-semibold text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg"
+                          >
                             <Edit className="mr-2 h-4 w-4" />
-                            Build agenda
-                          </Button>
-                          <Button variant="outline" className="h-11 rounded-xl border-slate-200 px-5 text-sm font-semibold">
-                            <Users className="mr-2 h-4 w-4" />
-                            Manage teams
-                          </Button>
-                          <Button variant="outline" className="h-11 rounded-xl border-slate-200 px-5 text-sm font-semibold">
-                            <UsersRound className="mr-2 h-4 w-4" />
-                            Assign judges
+                            Manage Event
                           </Button>
                         </CardFooter>
                       </Card>
@@ -406,6 +406,226 @@ export function AdminScreen({ onBack, onCreateEvent }: AdminScreenProps) {
                     ))}
                   </div>
                 </div>
+              </TabsContent>
+
+              <TabsContent value="insights" className="space-y-8">
+                {/* Overview Metrics */}
+                <div className="grid grid-cols-4 gap-6">
+                  <Card className="overflow-hidden rounded-3xl border border-slate-200/70 bg-linear-to-br from-primary/25 via-primary/10 to-transparent shadow-lg">
+                    <CardHeader className="p-6 pb-4">
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-primary/80">
+                        <Calendar className="h-4 w-4" />
+                        Total Events
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                      <div className="text-5xl font-bold text-primary">12</div>
+                      <p className="mt-1 text-sm text-slate-600">Since 2023</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="overflow-hidden rounded-3xl border border-slate-200/70 bg-linear-to-br from-emerald-200/60 via-emerald-100/40 to-transparent shadow-lg">
+                    <CardHeader className="p-6 pb-4">
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-emerald-700">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Avg Completion
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                      <div className="text-5xl font-bold text-emerald-700">94%</div>
+                      <p className="mt-1 text-sm text-slate-600">Judging finished</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="overflow-hidden rounded-3xl border border-slate-200/70 bg-linear-to-br from-sky-200/60 via-sky-100/40 to-transparent shadow-lg">
+                    <CardHeader className="p-6 pb-4">
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-sky-700">
+                        <Clock className="h-4 w-4" />
+                        Avg Judge Time
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                      <div className="text-5xl font-bold text-sky-700">21m</div>
+                      <p className="mt-1 text-sm text-slate-600">Per team</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="overflow-hidden rounded-3xl border border-slate-200/70 bg-linear-to-br from-amber-200/60 via-amber-100/40 to-transparent shadow-lg">
+                    <CardHeader className="p-6 pb-4">
+                      <CardTitle className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.15em] text-amber-700">
+                        <Target className="h-4 w-4" />
+                        Judge Usage
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6 pt-0">
+                      <div className="text-5xl font-bold text-amber-700">86%</div>
+                      <p className="mt-1 text-sm text-slate-600">Utilization rate</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Event History */}
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-2xl font-semibold text-slate-800">Event History</h3>
+                    <Button
+                      variant="outline"
+                      className="h-11 rounded-xl border-slate-300 bg-white/80 px-5 text-base font-semibold shadow-sm hover:bg-white"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Export All Data
+                    </Button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {[
+                      {
+                        name: "Aggies Invent Fall 2024",
+                        date: "Oct 20-22, 2024",
+                        status: "completed" as const,
+                        teams: 18,
+                        judges: 6,
+                        completion: 100,
+                        avgTime: 22,
+                        avgScore: 82.3,
+                        topScore: 95.8,
+                      },
+                      {
+                        name: "Problems Worth Solving Summer 2024",
+                        date: "Jul 10-12, 2024",
+                        status: "completed" as const,
+                        teams: 20,
+                        judges: 7,
+                        completion: 100,
+                        avgTime: 20,
+                        avgScore: 76.8,
+                        topScore: 92.4,
+                      },
+                      {
+                        name: "Aggies Invent Spring 2024",
+                        date: "Mar 18-20, 2024",
+                        status: "completed" as const,
+                        teams: 22,
+                        judges: 7,
+                        completion: 100,
+                        avgTime: 25,
+                        avgScore: 80.1,
+                        topScore: 93.6,
+                      },
+                    ].map((event, index) => (
+                      <Card
+                        key={index}
+                        className="overflow-hidden rounded-3xl border border-slate-200/70 bg-white/90 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                      >
+                        <CardHeader className="p-6 pb-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <CardTitle className="text-xl font-semibold text-slate-900">
+                                {event.name}
+                              </CardTitle>
+                              <CardDescription className="mt-1 text-sm text-slate-600">
+                                {event.date}
+                              </CardDescription>
+                            </div>
+                            <Badge className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
+                              {event.status}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="p-6 pt-0">
+                          <div className="grid grid-cols-6 gap-4">
+                            <div className="rounded-2xl bg-slate-50/80 p-4 text-center">
+                              <div className="text-2xl font-bold text-slate-900">{event.teams}</div>
+                              <div className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-600">
+                                Teams
+                              </div>
+                            </div>
+                            <div className="rounded-2xl bg-slate-50/80 p-4 text-center">
+                              <div className="text-2xl font-bold text-slate-900">{event.judges}</div>
+                              <div className="mt-1 text-xs font-medium uppercase tracking-wider text-slate-600">
+                                Judges
+                              </div>
+                            </div>
+                            <div className="rounded-2xl bg-emerald-50/80 p-4 text-center">
+                              <div className="text-2xl font-bold text-emerald-700">{event.completion}%</div>
+                              <div className="mt-1 text-xs font-medium uppercase tracking-wider text-emerald-700">
+                                Complete
+                              </div>
+                            </div>
+                            <div className="rounded-2xl bg-sky-50/80 p-4 text-center">
+                              <div className="text-2xl font-bold text-sky-700">{event.avgTime}m</div>
+                              <div className="mt-1 text-xs font-medium uppercase tracking-wider text-sky-700">
+                                Avg Time
+                              </div>
+                            </div>
+                            <div className="rounded-2xl bg-amber-50/80 p-4 text-center">
+                              <div className="text-2xl font-bold text-amber-700">{event.avgScore}</div>
+                              <div className="mt-1 text-xs font-medium uppercase tracking-wider text-amber-700">
+                                Avg Score
+                              </div>
+                            </div>
+                            <div className="rounded-2xl bg-primary/10 p-4 text-center">
+                              <div className="text-2xl font-bold text-primary">{event.topScore}</div>
+                              <div className="mt-1 text-xs font-medium uppercase tracking-wider text-primary">
+                                Top Score
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Insights & Recommendations */}
+                <Card className="overflow-hidden rounded-3xl border border-slate-200/70 bg-linear-to-br from-purple-50 via-indigo-50 to-white shadow-xl">
+                  <CardHeader className="p-8">
+                    <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-slate-900">
+                      <Sparkles className="h-6 w-6 text-purple-600" />
+                      Key Insights & Recommendations
+                    </CardTitle>
+                    <CardDescription className="text-base text-slate-600">
+                      Data-driven suggestions to optimize future events
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 p-8 pt-0">
+                    <div className="rounded-2xl border border-emerald-200/70 bg-emerald-50/50 p-5">
+                      <div className="flex items-start gap-3">
+                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+                        <div>
+                          <h4 className="font-semibold text-slate-900">Strong completion rates</h4>
+                          <p className="mt-1 text-sm text-slate-700">
+                            Your events maintain 94% average completion. Consider showcasing this to attract more
+                            judges.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-sky-200/70 bg-sky-50/50 p-5">
+                      <div className="flex items-start gap-3">
+                        <Timer className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" />
+                        <div>
+                          <h4 className="font-semibold text-slate-900">Optimize judging time</h4>
+                          <p className="mt-1 text-sm text-slate-700">
+                            Average judging time is 21 minutes per team. Events with 18-20 minute targets show better
+                            judge satisfaction.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-amber-200/70 bg-amber-50/50 p-5">
+                      <div className="flex items-start gap-3">
+                        <Target className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                        <div>
+                          <h4 className="font-semibold text-slate-900">Increase judge utilization</h4>
+                          <p className="mt-1 text-sm text-slate-700">
+                            At 86% utilization, you could handle 2-3 more teams per event with current judge capacity.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="teams" className="space-y-8">

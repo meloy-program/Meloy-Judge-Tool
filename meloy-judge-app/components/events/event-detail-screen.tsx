@@ -6,13 +6,16 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Screen } from "@/app/page"
-import { ArrowLeft, BarChart3, Users, CheckCircle2, Clock, Circle, MapPin, CalendarDays, Sparkles } from "lucide-react"
+import { ArrowLeft, BarChart3, Users, CheckCircle2, Clock, Circle, MapPin, CalendarDays, Activity, Settings } from "lucide-react"
 
 interface EventDetailScreenProps {
   eventId: string
   onSelectTeam: (teamId: string) => void
   onBack: () => void
   onNavigate: (screen: Screen) => void
+  onManageEvent: (eventId: string) => void
+  onOpenModerator: () => void
+  isAdmin: boolean
 }
 
 const mockTeams = [
@@ -60,7 +63,7 @@ const mockTeams = [
   },
 ]
 
-export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate }: EventDetailScreenProps) {
+export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, onManageEvent, onOpenModerator, isAdmin }: EventDetailScreenProps) {
   const gradedCount = mockTeams.filter((t) => t.status === "graded").length
   const totalCount = mockTeams.length
   const inProgressCount = mockTeams.filter((t) => t.status === "in-progress").length
@@ -77,18 +80,19 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate }:
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-primary/5">
       <header className="relative overflow-hidden border-b bg-linear-to-b from-primary to-[#3d0000] shadow-xl backdrop-blur-sm">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
-        <div className="relative mx-auto flex max-w-7xl flex-col gap-8 px-6 py-10 md:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-6">
+        <div className="relative mx-auto max-w-7xl px-6 py-8 md:px-8">
+          {/* Main Header Row */}
+          <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-5">
               <Button
                 variant="ghost"
                 onClick={onBack}
-                className="flex h-11 w-11 items-center justify-center rounded-full text-white hover:bg-white/20"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/20"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
               <div className="flex items-center gap-4">
-                <div className="flex h-14 w-auto items-center justify-center rounded-xl border border-white/25 bg-white/15 p-2 shadow-md backdrop-blur-md">
+                <div className="flex h-14 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 p-2 shadow-md backdrop-blur-md">
                   <Image src="/apptitle.png" alt="Meloy Program Judging Portal" width={120} height={50} className="object-contain" />
                 </div>
                 <div>
@@ -97,16 +101,38 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate }:
                 </div>
               </div>
             </div>
-            <Button
-              onClick={() => onNavigate("leaderboard")}
-              className="h-11 rounded-full bg-white px-6 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95"
-            >
-              <BarChart3 className="mr-2 h-5 w-5" />
-              View Leaderboard
-            </Button>
+
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => onNavigate("leaderboard")}
+                className="h-11 rounded-full bg-white px-6 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95"
+              >
+                <BarChart3 className="mr-2 h-5 w-5" />
+                View Leaderboard
+              </Button>
+              {isAdmin && (
+                <>
+                  <Button
+                    onClick={onOpenModerator}
+                    className="h-11 rounded-full border-2 border-white/30 bg-white/10 px-6 text-base font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                  >
+                    <Activity className="mr-2 h-5 w-5" />
+                    Moderator
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => onManageEvent(eventId)}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                  >
+                    <Settings className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-white/25 bg-white/10 px-6 py-4 text-white/90">
+          {/* Event Info Row */}
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-6 rounded-3xl border border-white/25 bg-white/10 px-6 py-4 text-white/90">
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-3">
                 <CalendarDays className="h-6 w-6 text-white" />
@@ -163,7 +189,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate }:
                 variant="secondary"
                 className="w-fit rounded-full border border-white/40 bg-white/20 px-5 py-2 text-sm font-semibold text-white hover:bg-white/30"
               >
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Activity className="mr-2 h-4 w-4" />
                 Share update
               </Button>
             </CardContent>
