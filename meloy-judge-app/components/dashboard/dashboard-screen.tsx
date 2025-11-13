@@ -21,6 +21,8 @@ const mockEvents = [
     location: "Zachry Engineering Center",
     status: "active",
     teamsCount: 24,
+    type: "aggies-invent",
+    logo: "/aggiesinvent.png",
   },
   {
     id: "2",
@@ -29,14 +31,18 @@ const mockEvents = [
     location: "Memorial Student Center",
     status: "completed",
     teamsCount: 18,
+    type: "aggies-invent",
+    logo: "/aggiesinvent.png",
   },
   {
     id: "3",
-    name: "Aggies Invent Summer 2024",
+    name: "Problems Worth Solving Summer 2024",
     date: "July 10-12, 2024",
     location: "Engineering Innovation Center",
     status: "completed",
     teamsCount: 20,
+    type: "problems-worth-solving",
+    logo: "/pws.png",
   },
 ]
 
@@ -94,10 +100,16 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
               <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-primary/70 to-primary/50" />
 
               <CardHeader className="relative px-6 pb-4 pt-7">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <CardTitle className="text-[1.3rem] font-semibold leading-snug text-slate-900 transition-colors duration-200 group-hover:text-primary line-clamp-2">
-                    {event.name}
-                  </CardTitle>
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div className="flex h-16 items-center justify-center rounded-xl border border-slate-200/70 bg-slate-50/70 px-4 py-2 shadow-sm">
+                    <Image
+                      src={event.logo}
+                      alt={event.name}
+                      width={140}
+                      height={48}
+                      className="object-contain"
+                    />
+                  </div>
                   <Badge
                     variant={event.status === "active" ? "default" : "secondary"}
                     className={`shrink-0 text-xs font-semibold px-3 py-1 uppercase tracking-wide ${
@@ -109,6 +121,9 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
                     {event.status}
                   </Badge>
                 </div>
+                <CardTitle className="text-[1.3rem] font-semibold leading-snug text-slate-900 transition-colors duration-200 group-hover:text-primary line-clamp-2 mb-3">
+                  {event.name}
+                </CardTitle>
                 <CardDescription className="flex items-center gap-3 text-base font-medium text-slate-600">
                   <Calendar className="h-5 w-5 text-primary" />
                   {event.date}

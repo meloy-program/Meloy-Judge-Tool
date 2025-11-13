@@ -29,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface AdminScreenProps {
   onBack: () => void
+  onCreateEvent: () => void
 }
 
 const mockJudges = [
@@ -92,51 +93,37 @@ const teamSpotlight = {
   score: "92.4",
 }
 
-export function AdminScreen({ onBack }: AdminScreenProps) {
-  const [newEventName, setNewEventName] = useState("")
+export function AdminScreen({ onBack, onCreateEvent }: AdminScreenProps) {
   const [newJudgeEmail, setNewJudgeEmail] = useState("")
 
   const activeEvents = mockEvents.filter((event) => event.status === "active").length
-  const activeJudges = mockJudges.filter((judge) => judge.status === "active").length
-  const totalTeams = mockEvents.reduce((acc, event) => acc + event.teams, 0)
-  const averageJudgesPerEvent = (mockEvents.reduce((acc, event) => acc + event.judges, 0) / mockEvents.length).toFixed(1)
+  const totalEvents = mockEvents.length
+  const totalJudges = mockJudges.length
 
   const highlightMetrics = [
     {
-      id: "events",
+      id: "active-events",
       label: "Active events",
       value: activeEvents.toString(),
-      trend: "+12%",
-      trendLabel: "vs last cohort",
       icon: Calendar,
-      accent: "from-primary/15 via-primary/5 to-transparent",
+      iconColor: "text-emerald-500",
+      bgColor: "bg-emerald-50",
     },
     {
-      id: "judges",
-      label: "Judges engaged",
-      value: activeJudges.toString(),
-      trend: "+4",
-      trendLabel: "joined this month",
+      id: "total-events",
+      label: "Total events",
+      value: totalEvents.toString(),
+      icon: Calendar,
+      iconColor: "text-primary",
+      bgColor: "bg-primary/5",
+    },
+    {
+      id: "total-judges",
+      label: "Total judges",
+      value: totalJudges.toString(),
       icon: UsersRound,
-      accent: "from-orange-200/60 via-white to-transparent",
-    },
-    {
-      id: "teams",
-      label: "Teams registered",
-      value: totalTeams.toString(),
-      trend: "+18%",
-      trendLabel: "from 2024 season",
-      icon: Users,
-      accent: "from-sky-200/60 via-white to-transparent",
-    },
-    {
-      id: "coverage",
-      label: "Avg judges / event",
-      value: averageJudgesPerEvent,
-      trend: "100%",
-      trendLabel: "schedule coverage",
-      icon: BarChart3,
-      accent: "from-emerald-200/60 via-white to-transparent",
+      iconColor: "text-sky-500",
+      bgColor: "bg-sky-50",
     },
   ]
 
@@ -174,37 +161,32 @@ export function AdminScreen({ onBack }: AdminScreenProps) {
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-7xl px-6 py-12 md:py-16">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <main className="relative mx-auto max-w-7xl px-6 py-8 md:py-12">
+        <div className="mb-8 grid grid-cols-3 gap-4">
           {highlightMetrics.map((metric) => {
             const Icon = metric.icon
 
             return (
-              <Card
+              <div
                 key={metric.id}
-                className="group relative overflow-hidden rounded-3xl border border-slate-200/70 bg-white/80 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
               >
-                <div className={`absolute inset-0 bg-linear-to-br ${metric.accent} opacity-70`} />
-                <CardContent className="relative flex flex-col gap-6 p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/60 shadow-inner">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <Badge className="rounded-full border border-white/70 bg-white/90 px-3 py-1 text-xs font-medium text-slate-600 shadow-sm">
-                      {metric.trend} - {metric.trendLabel}
-                    </Badge>
+                <div className={`absolute inset-0 bg-linear-to-br ${metric.bgColor === 'bg-emerald-50' ? 'from-emerald-200/60 via-emerald-100/40 to-transparent' : metric.bgColor === 'bg-primary/5' ? 'from-primary/25 via-primary/10 to-transparent' : 'from-sky-200/60 via-sky-100/40 to-transparent'}`} />
+                <div className="relative flex items-center gap-4">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm">
+                    <Icon className={`h-6 w-6 ${metric.iconColor}`} />
                   </div>
                   <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.28em] text-slate-500">{metric.label}</p>
-                    <p className="mt-2 text-4xl font-semibold text-slate-900">{metric.value}</p>
+                    <p className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">{metric.label}</p>
+                    <p className="mt-0.5 text-3xl font-semibold text-slate-900">{metric.value}</p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           })}
-        </section>
+        </div>
 
-        <div className="mt-14 grid gap-8 lg:grid-cols-[minmax(0,7fr)_minmax(260px,3fr)]">
+        <div className="space-y-8">
           <Tabs defaultValue="events" className="w-full">
             <TabsList className="grid h-16 w-full grid-cols-3 rounded-2xl border border-slate-200 bg-white/80 p-2 shadow-lg backdrop-blur">
                             <TabsTrigger
@@ -232,85 +214,18 @@ export function AdminScreen({ onBack }: AdminScreenProps) {
 
             <div className="mt-10 space-y-10">
               <TabsContent value="events" className="space-y-8">
-                {upcomingEvent && (
-                  <Card className="relative overflow-hidden rounded-3xl border-none bg-linear-to-br from-primary/95 via-primary/90 to-[#3d0000] text-white shadow-2xl">
-                    <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full border border-white/10 bg-white/10 blur-2xl" />
-                    <CardHeader className="relative p-8 pb-6">
-                      <Badge className="w-fit rounded-full border border-white/20 bg-white/15 px-4 py-2 text-xs uppercase tracking-[0.18em] text-white">
-                        Next Spotlight Event
-                      </Badge>
-                      <CardTitle className="mt-4 text-3xl font-semibold">{upcomingEvent.name}</CardTitle>
-                      <CardDescription className="text-base text-white/80">
-                        Finalize agendas, publish expectations, and keep mentors aligned ahead of demo day.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="relative flex flex-wrap gap-6 p-8 pt-4">
-                      <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-5 py-4">
-                        <Calendar className="h-5 w-5" />
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-white/60">Event date</p>
-                          <p className="text-lg font-semibold">{upcomingEvent.date}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-5 py-4">
-                        <Users className="h-5 w-5" />
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-white/60">Teams locked in</p>
-                          <p className="text-lg font-semibold">{upcomingEvent.teams}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 px-5 py-4">
-                        <UsersRound className="h-5 w-5" />
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-white/60">Judges assigned</p>
-                          <p className="text-lg font-semibold">{upcomingEvent.judges}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-
-                <Card className="rounded-3xl border border-dashed border-slate-300/70 bg-white/85 backdrop-blur-sm shadow-lg">
-                  <CardHeader className="p-8 pb-6">
-                    <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-slate-900">
-                      <Sparkles className="h-6 w-6 text-primary" />
-                      Launch New Event Journey
-                    </CardTitle>
-                    <CardDescription className="text-base text-slate-600">
-                      Capture the working title and send a kickoff announcement to your core team.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-8 pt-0">
-                    <div className="flex flex-col gap-4 lg:flex-row">
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="event-name" className="text-base font-medium text-slate-700">
-                          Event name
-                        </Label>
-                        <Input
-                          id="event-name"
-                          placeholder="e.g., Aggies Invent Summer 2025"
-                          value={newEventName}
-                          onChange={(e) => setNewEventName(e.target.value)}
-                          className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <Button className="h-12 rounded-xl bg-primary px-6 text-base font-semibold shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl">
-                          <Plus className="mr-2 h-5 w-5" />
-                          Draft event
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="text-3xl font-semibold text-slate-800">Your Events</h3>
+                  <Button 
+                    onClick={onCreateEvent}
+                    className="h-14 rounded-2xl bg-primary px-8 text-lg font-semibold shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                  >
+                    <Plus className="mr-2 h-6 w-6" />
+                    Create New Event
+                  </Button>
+                </div>
 
                 <div>
-                  <div className="mb-6 flex items-center justify-between">
-                    <h3 className="text-3xl font-semibold text-slate-800">Program timeline</h3>
-                    <Button variant="ghost" className="h-10 rounded-full border border-transparent px-4 text-sm font-semibold text-primary hover:border-primary/20 hover:bg-primary/10">
-                      View archive
-                    </Button>
-                  </div>
                   <div className="grid gap-6 md:grid-cols-2">
                     {mockEvents.map((event) => (
                       <Card
@@ -368,6 +283,41 @@ export function AdminScreen({ onBack }: AdminScreenProps) {
                     ))}
                   </div>
                 </div>
+
+                <Card className="rounded-3xl border border-slate-200/80 bg-white/90 shadow-lg">
+                  <CardHeader className="p-6 pb-4">
+                    <CardTitle className="text-xl font-semibold text-slate-900">Recent Activity</CardTitle>
+                    <CardDescription className="text-sm text-slate-500">
+                      Track the most recent moves across events, judges, and scoring workflows.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 pt-0">
+                    <div className="relative flex gap-6 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100">
+                      {recentActivity.map((item) => {
+                        const Icon = item.icon
+
+                        return (
+                          <div key={item.id} className="min-w-[340px] shrink-0">
+                            <div className="rounded-2xl border border-slate-200/60 bg-slate-50/70 px-5 py-4 h-full">
+                              <div className="flex items-start gap-3 mb-3">
+                                <span className={`flex h-10 w-10 items-center justify-center rounded-xl bg-white shadow-md ring-2 ring-primary/20`}>
+                                  <Icon className={`h-5 w-5 ${item.tone}`} />
+                                </span>
+                                <div className="flex-1">
+                                  <p className="text-sm font-semibold text-slate-800">{item.title}</p>
+                                  <span className="mt-1 inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                                    {item.time}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-sm text-slate-500">{item.description}</p>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
               </TabsContent>
 
               <TabsContent value="judges" className="space-y-8">
@@ -558,75 +508,6 @@ export function AdminScreen({ onBack }: AdminScreenProps) {
               </TabsContent>
             </div>
           </Tabs>
-
-          <div className="space-y-6">
-            <Card className="rounded-3xl border border-slate-200/80 bg-white/90 shadow-lg">
-              <CardHeader className="p-6 pb-4">
-                <CardTitle className="text-xl font-semibold text-slate-900">Operational snapshot</CardTitle>
-                <CardDescription className="text-sm text-slate-500">
-                  Track the most recent moves across events, judges, and scoring workflows.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6 pt-0">
-                <div className="relative pl-6">
-                  <span className="absolute left-2 top-1 h-[calc(100%-12px)] w-px bg-slate-200" aria-hidden />
-                  {recentActivity.map((item) => {
-                    const Icon = item.icon
-
-                    return (
-                      <div key={item.id} className="relative pb-6 last:pb-0">
-                        <span className="absolute -left-[11px] top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-md ring-2 ring-primary/20">
-                          <Icon className={`h-3.5 w-3.5 ${item.tone}`} />
-                        </span>
-                        <div className="rounded-2xl border border-slate-200/60 bg-slate-50/70 px-5 py-4">
-                          <p className="text-sm font-semibold text-slate-800">{item.title}</p>
-                          <p className="mt-1 text-sm text-slate-500">{item.description}</p>
-                          <span className="mt-3 inline-flex text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                            {item.time}
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-center border-t border-slate-100/80 p-5">
-                <Button variant="ghost" className="h-11 rounded-full px-4 text-sm font-semibold text-primary hover:bg-primary/10">
-                  View full activity log
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card className="rounded-3xl border-none bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
-              <CardHeader className="p-6 pb-4">
-                <CardTitle className="flex items-center gap-2 text-xl font-semibold">
-                  <Shield className="h-5 w-5" />
-                  Roles & security
-                </CardTitle>
-                <CardDescription className="text-sm text-white/70">
-                  Keep the judging portal compliant and audit-ready.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6 pt-0">
-                {bestPractices.map((item, index) => (
-                  <div key={item} className="flex items-start gap-3">
-                    <span className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-white/15 text-sm font-semibold">
-                      {index + 1}
-                    </span>
-                    <p className="text-sm text-white/80">{item}</p>
-                  </div>
-                ))}
-              </CardContent>
-              <CardFooter className="flex flex-col gap-3 border-t border-white/10 p-6">
-                <Button variant="secondary" className="h-11 rounded-xl bg-white text-slate-900 hover:bg-white/90">
-                  Review access matrix
-                </Button>
-                <Button variant="ghost" className="h-11 rounded-xl border border-white/20 bg-white/10 text-white hover:bg-white/20">
-                  Download judge onboarding kit
-                </Button>
-              </CardFooter>
-            </Card>
-          </div>
         </div>
       </main>
     </div>

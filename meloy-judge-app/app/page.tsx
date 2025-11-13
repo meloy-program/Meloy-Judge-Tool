@@ -7,9 +7,10 @@ import { EventDetailScreen } from "@/components/events/event-detail-screen"
 import { TeamDetailScreen } from "@/components/judging/team-detail-screen"
 import { LeaderboardScreen } from "@/components/events/leaderboard-screen"
 import { AdminScreen } from "@/components/management/admin-screen"
+import { EventCreationScreen } from "@/components/management/event-creation-screen"
 import { SettingsScreen } from "@/components/settings/settings-screen"
 
-export type Screen = "login" | "dashboard" | "event-detail" | "team-detail" | "leaderboard" | "admin" | "settings"
+export type Screen = "login" | "dashboard" | "event-detail" | "team-detail" | "leaderboard" | "admin" | "settings" | "event-creation"
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("login")
@@ -37,6 +38,8 @@ export default function Home() {
       setCurrentScreen("event-detail")
     } else if (currentScreen === "leaderboard") {
       setCurrentScreen("event-detail")
+    } else if (currentScreen === "event-creation") {
+      setCurrentScreen("admin")
     } else if (
       currentScreen === "event-detail" ||
       currentScreen === "admin" ||
@@ -44,6 +47,14 @@ export default function Home() {
     ) {
       setCurrentScreen("dashboard")
     }
+  }
+
+  const handleCreateEvent = () => {
+    setCurrentScreen("event-creation")
+  }
+
+  const handleEventCreated = () => {
+    setCurrentScreen("admin")
   }
 
   const handleLogout = () => {
@@ -71,7 +82,8 @@ export default function Home() {
       {currentScreen === "leaderboard" && selectedEventId && (
         <LeaderboardScreen eventId={selectedEventId} onBack={handleBack} />
       )}
-      {currentScreen === "admin" && <AdminScreen onBack={handleBack} />}
+      {currentScreen === "admin" && <AdminScreen onBack={handleBack} onCreateEvent={handleCreateEvent} />}
+      {currentScreen === "event-creation" && <EventCreationScreen onBack={handleBack} onCreateEvent={handleEventCreated} />}
       {currentScreen === "settings" && <SettingsScreen onBack={handleBack} onLogout={handleLogout} />}
     </main>
   )
