@@ -117,7 +117,7 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
                 {/* White glass sponsor container - left side */}
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-xl border-2 border-white/80 shadow-xl px-4 py-3">
                   <Image
-                    src="/exxonlogo.png"
+                    src="/ExxonLogo.png"
                     alt="ExxonMobil"
                     width={80}
                     height={40}

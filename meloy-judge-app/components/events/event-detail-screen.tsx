@@ -75,7 +75,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
   const eventLogoSrc = eventId === "1" ? "/aggiesinvent.png" : "/pws.png"
   const sponsor = { 
     name: "ExxonMobil", 
-    logo: "/exxonlogo.png",
+    logo: "/ExxonLogo.png",
     color: "#500000" // Texas A&M maroon - replace with user-chosen sponsor color from event settings
   }
 
