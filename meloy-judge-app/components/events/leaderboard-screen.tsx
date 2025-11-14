@@ -1,11 +1,13 @@
 "use client"
 
 import Image from "next/image"
+import { useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Trophy, Medal, Award, Sparkles } from "lucide-react"
+import { ArrowLeft, Trophy, Medal, Award, Sparkles, Eye, BarChart3, TrendingUp, Users } from "lucide-react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface LeaderboardScreenProps {
   eventId: string
@@ -13,11 +15,123 @@ interface LeaderboardScreenProps {
 }
 
 const rubricOrder = [
-  { key: "communication", label: "Effective Communication", short: "Communication" },
-  { key: "funding", label: "Would Fund/Buy", short: "Fund/Buy" },
-  { key: "presentation", label: "Presentation", short: "Presentation" },
-  { key: "overall", label: "Overall", short: "Overall" },
+  { key: "communication", label: "Effective Communication", short: "Communication", maxScore: 25 },
+  { key: "funding", label: "Would Fund/Buy Solution", short: "Fund/Buy", maxScore: 25 },
+  { key: "presentation", label: "Presentation Quality", short: "Presentation", maxScore: 25 },
+  { key: "cohesion", label: "Team Cohesion", short: "Cohesion", maxScore: 25 },
 ] as const
+
+// Mock data for "During Judging" mode - Judge's own scoring overview
+const mockJudgeScores = [
+  {
+    teamName: "Team Alpha",
+    projectTitle: "Smart Campus Navigation System",
+    totalScore: 85,
+    judgedAt: "2025-01-15 10:30 AM",
+    breakdown: {
+      communication: 22,
+      funding: 21,
+      presentation: 21,
+      cohesion: 21,
+    },
+    comments: "Strong technical implementation, clear communication of problem and solution.",
+  },
+  {
+    teamName: "Team Beta",
+    projectTitle: "Sustainable Energy Monitor",
+    totalScore: 88,
+    judgedAt: "2025-01-15 11:15 AM",
+    breakdown: {
+      communication: 22,
+      funding: 22,
+      presentation: 22,
+      cohesion: 22,
+    },
+    comments: "Excellent presentation, very convincing business case.",
+  },
+  {
+    teamName: "Team Gamma",
+    projectTitle: "AI-Powered Study Assistant",
+    totalScore: 82,
+    judgedAt: "2025-01-15 1:45 PM",
+    breakdown: {
+      communication: 21,
+      funding: 20,
+      presentation: 20,
+      cohesion: 21,
+    },
+    comments: "Good concept, needs more work on feasibility demonstration.",
+  },
+]
+
+// Mock data for "Post Judging" mode - All judges' scores for all teams
+const mockAllJudgesData = [
+  {
+    teamName: "Team Epsilon",
+    projectTitle: "Food Waste Reduction Platform",
+    rank: 1,
+    averageScore: 92,
+    judges: [
+      { name: "Dr. Smith", score: 95, breakdown: { communication: 24, funding: 24, presentation: 24, cohesion: 23 } },
+      { name: "Prof. Johnson", score: 91, breakdown: { communication: 23, funding: 23, presentation: 23, cohesion: 22 } },
+      { name: "Ms. Williams", score: 90, breakdown: { communication: 23, funding: 22, presentation: 23, cohesion: 22 } },
+      { name: "Dr. Brown", score: 92, breakdown: { communication: 24, funding: 23, presentation: 23, cohesion: 22 } },
+    ],
+    strengthAreas: ["Communication", "Funding Potential"],
+  },
+  {
+    teamName: "Team Beta",
+    projectTitle: "Sustainable Energy Monitor",
+    rank: 2,
+    averageScore: 88,
+    judges: [
+      { name: "Dr. Smith", score: 86, breakdown: { communication: 22, funding: 21, presentation: 22, cohesion: 21 } },
+      { name: "Prof. Johnson", score: 89, breakdown: { communication: 23, funding: 22, presentation: 22, cohesion: 22 } },
+      { name: "Ms. Williams", score: 88, breakdown: { communication: 22, funding: 22, presentation: 22, cohesion: 22 } },
+      { name: "Dr. Brown", score: 89, breakdown: { communication: 23, funding: 22, presentation: 22, cohesion: 22 } },
+    ],
+    strengthAreas: ["Presentation", "Communication"],
+  },
+  {
+    teamName: "Team Alpha",
+    projectTitle: "Smart Campus Navigation System",
+    rank: 3,
+    averageScore: 85,
+    judges: [
+      { name: "Dr. Smith", score: 83, breakdown: { communication: 21, funding: 20, presentation: 21, cohesion: 21 } },
+      { name: "Prof. Johnson", score: 85, breakdown: { communication: 22, funding: 21, presentation: 21, cohesion: 21 } },
+      { name: "Ms. Williams", score: 86, breakdown: { communication: 22, funding: 21, presentation: 22, cohesion: 21 } },
+      { name: "Dr. Brown", score: 86, breakdown: { communication: 22, funding: 22, presentation: 21, cohesion: 21 } },
+    ],
+    strengthAreas: ["Communication", "Cohesion"],
+  },
+  {
+    teamName: "Team Gamma",
+    projectTitle: "AI-Powered Study Assistant",
+    rank: 4,
+    averageScore: 82,
+    judges: [
+      { name: "Dr. Smith", score: 80, breakdown: { communication: 20, funding: 20, presentation: 20, cohesion: 20 } },
+      { name: "Prof. Johnson", score: 82, breakdown: { communication: 21, funding: 20, presentation: 20, cohesion: 21 } },
+      { name: "Ms. Williams", score: 83, breakdown: { communication: 21, funding: 21, presentation: 20, cohesion: 21 } },
+      { name: "Dr. Brown", score: 83, breakdown: { communication: 21, funding: 21, presentation: 21, cohesion: 20 } },
+    ],
+    strengthAreas: ["Communication"],
+  },
+  {
+    teamName: "Team Delta",
+    projectTitle: "Campus Safety Alert System",
+    rank: 5,
+    averageScore: 78,
+    judges: [
+      { name: "Dr. Smith", score: 76, breakdown: { communication: 19, funding: 19, presentation: 19, cohesion: 19 } },
+      { name: "Prof. Johnson", score: 78, breakdown: { communication: 20, funding: 19, presentation: 19, cohesion: 20 } },
+      { name: "Ms. Williams", score: 79, breakdown: { communication: 20, funding: 20, presentation: 19, cohesion: 20 } },
+      { name: "Dr. Brown", score: 79, breakdown: { communication: 20, funding: 20, presentation: 20, cohesion: 19 } },
+    ],
+    strengthAreas: ["Communication"],
+  },
+]
 
 const mockLeaderboard = [
   {
@@ -29,7 +143,7 @@ const mockLeaderboard = [
       communication: 24,
       funding: 23,
       presentation: 23,
-      overall: 22,
+      cohesion: 22,
     },
   },
   {
@@ -41,7 +155,7 @@ const mockLeaderboard = [
       communication: 22,
       funding: 22,
       presentation: 22,
-      overall: 22,
+      cohesion: 22,
     },
   },
   {
@@ -53,7 +167,7 @@ const mockLeaderboard = [
       communication: 22,
       funding: 21,
       presentation: 21,
-      overall: 21,
+      cohesion: 21,
     },
   },
   {
@@ -65,7 +179,7 @@ const mockLeaderboard = [
       communication: 21,
       funding: 20,
       presentation: 20,
-      overall: 21,
+      cohesion: 21,
     },
   },
   {
@@ -77,7 +191,7 @@ const mockLeaderboard = [
       communication: 20,
       funding: 19,
       presentation: 19,
-      overall: 20,
+      cohesion: 20,
     },
   },
 ]

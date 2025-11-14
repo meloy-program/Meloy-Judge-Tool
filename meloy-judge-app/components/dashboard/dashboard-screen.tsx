@@ -75,7 +75,7 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
               <Button
                 variant="ghost"
                 onClick={() => onNavigate("settings")}
-                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/20"
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
                 aria-label="Open settings"
               >
                 <Settings className="h-6 w-6" />
