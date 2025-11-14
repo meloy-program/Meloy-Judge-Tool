@@ -96,9 +96,9 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
               <Button
                 variant="ghost"
                 onClick={onBack}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/20"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-7 w-7" />
               </Button>
               <div className="flex items-center gap-3 lg:gap-4">
                 <div className="flex h-16 lg:h-20 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 px-3 py-2 shadow-md backdrop-blur-md">
@@ -131,9 +131,9 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
                   <Button
                     variant="ghost"
                     onClick={() => onManageEvent(eventId)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                    className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
                   >
-                    <Settings className="h-5 w-5" />
+                    <Settings className="h-6 w-6" />
                   </Button>
                 </>
               )}

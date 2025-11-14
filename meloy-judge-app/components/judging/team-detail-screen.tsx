@@ -117,10 +117,10 @@ export function TeamDetailScreen({ teamId, onBack }: TeamDetailScreenProps) {
               <Button
                 variant="ghost"
                 onClick={onBack}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white hover:bg-white/20"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
                 aria-label="Back to event"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <ArrowLeft className="h-7 w-7" />
               </Button>
               <div className="flex h-16 lg:h-20 w-auto items-center justify-center rounded-2xl border border-white/25 bg-white/15 px-3 py-2 shadow-md backdrop-blur-md">
                 <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-12 lg:h-16 w-auto object-contain" />
