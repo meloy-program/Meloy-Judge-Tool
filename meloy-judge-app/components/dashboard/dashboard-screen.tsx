@@ -93,34 +93,40 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
           {mockEvents.map((event, index) => (
             <Card
               key={event.id}
-              className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/95 ring-1 ring-primary/10 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:ring-primary/25 hover:shadow-2xl"
+              className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/95 ring-1 ring-primary/10 transition-all duration-300 hover:-translate-y-1 hover:border-primary/50 hover:ring-primary/25 hover:shadow-2xl p-0"
               onClick={() => onSelectEvent(event.id)}
               style={{ animationDelay: `${index * 100}ms` }}
             >
-              <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-primary/70 to-primary/50" />
+              {/* Sponsor gradient section at top */}
+              <div className="relative h-32 bg-linear-to-b from-red-600 to-red-950 overflow-hidden rounded-t-[28px]">
+                {/* Subtle texture overlay */}
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+                
+                {/* Active badge - top right */}
+                <Badge
+                  variant={event.status === "active" ? "default" : "secondary"}
+                  className={`absolute top-4 right-4 z-10 shrink-0 text-xs font-semibold px-3 py-1 uppercase tracking-wide ${
+                    event.status === "active"
+                      ? "bg-emerald-500/90 text-white shadow-sm shadow-emerald-500/30"
+                      : "bg-slate-200 text-slate-700"
+                  }`}
+                >
+                  {event.status}
+                </Badge>
 
-              <CardHeader className="relative px-6 pb-4 pt-7">
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div className="flex h-16 items-center justify-center rounded-xl border border-slate-200/70 bg-slate-50/70 px-4 py-2 shadow-sm">
-                    <Image
-                      src={event.logo}
-                      alt={event.name}
-                      width={140}
-                      height={48}
-                      className="object-contain"
-                    />
-                  </div>
-                  <Badge
-                    variant={event.status === "active" ? "default" : "secondary"}
-                    className={`shrink-0 text-xs font-semibold px-3 py-1 uppercase tracking-wide ${
-                      event.status === "active"
-                        ? "bg-emerald-500/90 text-white shadow-sm shadow-emerald-500/30"
-                        : "bg-slate-200 text-slate-700"
-                    }`}
-                  >
-                    {event.status}
-                  </Badge>
+                {/* White glass sponsor container - left side */}
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-xl border-2 border-white/80 shadow-xl px-4 py-3">
+                  <Image
+                    src="/exxonlogo.png"
+                    alt="ExxonMobil"
+                    width={80}
+                    height={40}
+                    className="h-10 w-auto max-w-[120px] object-contain"
+                  />
                 </div>
+              </div>
+
+              <CardHeader className="relative px-6 pb-3 pt-4">
                 <CardTitle className="text-[1.3rem] font-semibold leading-snug text-slate-900 transition-colors duration-200 group-hover:text-primary line-clamp-2 mb-3">
                   {event.name}
                 </CardTitle>
@@ -130,7 +136,7 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
                 </CardDescription>
               </CardHeader>
 
-              <CardContent className="relative px-6 pb-7 pt-1">
+              <CardContent className="relative px-6 pb-4 pt-1">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white px-4 py-4 shadow-sm transition-all duration-300 group-hover:border-primary/40 group-hover:shadow-md">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-105">
@@ -153,6 +159,19 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
                   <div className="flex items-center justify-between rounded-xl bg-primary px-6 py-3 text-white transition-all duration-300 group-hover:bg-primary/90">
                     <span className="text-sm font-semibold uppercase tracking-[0.24em]">View Event</span>
                     <ChevronRight className="h-5 w-5" />
+                  </div>
+                </div>
+
+                {/* Event logo moved to bottom */}
+                <div className="mt-3 flex justify-center">
+                  <div className="flex h-16 items-center justify-center rounded-xl border border-slate-200/70 bg-slate-50/70 px-4 py-2 shadow-sm">
+                    <Image
+                      src={event.logo}
+                      alt={event.name}
+                      width={140}
+                      height={48}
+                      className="h-12 w-auto object-contain"
+                    />
                   </div>
                 </div>
               </CardContent>

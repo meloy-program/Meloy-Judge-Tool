@@ -74,8 +74,8 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
   // show white version of event logos via CSS filter for high contrast in header
   const eventLogoSrc = eventId === "1" ? "/aggiesinvent.png" : "/pws.png"
   const sponsor = { 
-    name: "Meloy Sponsor", 
-    logo: "/TAMUlogo.png",
+    name: "ExxonMobil", 
+    logo: "/exxonlogo.png",
     color: "#500000" // Texas A&M maroon - replace with user-chosen sponsor color from event settings
   }
 
@@ -89,10 +89,10 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-primary/5">
       <header className="relative overflow-hidden border-b bg-linear-to-b from-primary to-[#3d0000] shadow-xl backdrop-blur-sm">
     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
-  <div className="relative mx-auto max-w-7xl px-6 py-4 md:px-8">
+  <div className="relative mx-auto max-w-7xl px-6 py-4 lg:px-8">
           {/* Main Header Row */}
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-5">
+          <div className="flex items-center justify-between gap-4 lg:gap-6">
+            <div className="flex items-center gap-4 lg:gap-5">
               <Button
                 variant="ghost"
                 onClick={onBack}
@@ -100,13 +100,13 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
-              <div className="flex items-center gap-4">
-                <div className="flex h-14 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 p-2 shadow-md backdrop-blur-md">
-                  <Image src="/apptitle.png" alt="Meloy Program Judging Portal" width={120} height={50} className="object-contain" />
+              <div className="flex items-center gap-3 lg:gap-4">
+                <div className="flex h-12 lg:h-14 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 p-2 shadow-md backdrop-blur-md">
+                  <Image src="/apptitle.png" alt="Meloy Program Judging Portal" width={120} height={50} className="h-10 lg:h-12 w-auto object-contain" />
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Event spotlight</p>
-                  <h1 className="text-3xl font-semibold text-white sm:text-[2.25rem]">Aggies Invent Spring 2025</h1>
+                  <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Aggies Invent Spring 2025</h1>
                 </div>
               </div>
             </div>
@@ -114,7 +114,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => onNavigate("leaderboard")}
-                className="h-11 rounded-full bg-white px-6 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95"
+                className="h-11 rounded-full bg-white px-5 lg:px-6 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95"
               >
                 <BarChart3 className="mr-2 h-5 w-5" />
                 View Leaderboard
@@ -123,7 +123,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
                 <>
                   <Button
                     onClick={onOpenModerator}
-                    className="h-11 rounded-full border-2 border-white/30 bg-white/10 px-6 text-base font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                    className="h-11 rounded-full border-2 border-white/30 bg-white/10 px-5 lg:px-6 text-base font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
                   >
                     <Activity className="mr-2 h-5 w-5" />
                     Moderator
@@ -142,17 +142,20 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
         </div>
       </header>
 
-  <main className="relative mx-auto max-w-7xl px-6 py-6 md:py-8">
+  <main className="relative mx-auto max-w-7xl px-6 py-5 lg:py-6">
         {/* Unified Event Info Banner - sponsor and event details in one cohesive card */}
-  <div className="relative mb-6 rounded-3xl p-0.5 shadow-xl" style={{ background: '#500000' }}>
-          {/* Inner container with gradient background */}
-          <div className="relative rounded-3xl bg-linear-to-br from-primary via-primary/60 to-white p-4 md:p-6">
-            <div className="flex items-center gap-4 md:gap-8">
+  <div className="relative mb-6 overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
+          {/* Inner container with red to dark red gradient - smaller radius to fit inside border */}
+          <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
+            {/* Very subtle texture overlay */}
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+            
+            <div className="relative flex items-center gap-6 lg:gap-8">
               {/* Sponsor block with glass container showing sponsor color */}
-              <div className="group relative flex items-center gap-4 md:gap-6 cursor-pointer transition-transform hover:scale-[1.02]">
-                {/* Glass rounded box container with enhanced glass aesthetic */}
+              <div className="group relative flex items-center gap-5 lg:gap-6 cursor-pointer transition-transform hover:scale-[1.02]">
+                {/* Dynamic glass container - adapts to logo aspect ratio */}
                 <div 
-                  className="relative flex shrink-0 items-center justify-center rounded-2xl p-3 md:p-4 lg:p-6 shadow-xl backdrop-blur-xl transition-all group-hover:shadow-2xl bg-white/70 border-2 border-white/80"
+                  className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl transition-all group-hover:shadow-2xl bg-white/70 border-2 border-white/80 min-h-20 lg:min-h-24"
                 >
                   {/* Inner glow on hover */}
                   <div 
@@ -162,14 +165,14 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
                   <Image
                     src={sponsor.logo}
                     alt={sponsor.name ?? "Sponsor logo"}
-                    width={96}
-                    height={96}
-                    className="relative w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 object-contain rounded-md"
+                    width={120}
+                    height={60}
+                    className="relative h-14 lg:h-16 w-auto max-w-[180px] lg:max-w-[220px] object-contain"
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs md:text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
-                  <p className="text-lg md:text-2xl font-semibold text-white leading-tight max-w-[360px] md:max-w-[420px] wrap-break-word drop-shadow-sm">{sponsor.name}</p>
+                  <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
+                  <p className="text-xl lg:text-2xl font-semibold text-white leading-tight max-w-[400px] lg:max-w-[420px] wrap-break-word drop-shadow-sm">{sponsor.name}</p>
                 </div>
               </div>
 
@@ -184,24 +187,24 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
                 {/* Event details - enhanced glass background */}
                 <div className="flex items-center rounded-3xl border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
                   <div className="flex items-center gap-3">
-                      <Image src={eventLogoSrc} alt="Event logo" width={48} height={48} className="w-10 h-10 md:w-12 md:h-12 object-contain" />
+                      <Image src={eventLogoSrc} alt="Event logo" width={64} height={64} className="w-16 h-16 lg:w-20 lg:h-20 object-contain" />
 
-                      <div className="flex items-center gap-4 md:gap-6">
-                        <div className="flex items-center gap-2 md:gap-3">
-                          <CalendarDays className="h-5 w-5 text-slate-700" />
-                          <div>
-                            <p className="text-xs md:text-xs uppercase tracking-[0.12em] text-slate-600">Dates</p>
-                            <p className="text-sm md:text-base font-semibold text-slate-900">Mar 15–17, 2025</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 md:gap-3">
-                          <MapPin className="h-5 w-5 text-slate-700" />
-                          <div>
-                            <p className="text-xs md:text-xs uppercase tracking-[0.12em] text-slate-600">Venue</p>
-                            <p className="text-sm md:text-base font-semibold text-slate-900">Zachry Engineering Center</p>
-                          </div>
+                    <div className="flex items-center gap-5 lg:gap-6">
+                      <div className="flex items-center gap-2 lg:gap-3">
+                        <CalendarDays className="h-5 w-5 text-slate-700" />
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.12em] text-slate-600">Dates</p>
+                          <p className="text-sm lg:text-base font-semibold text-slate-900">Mar 15–17, 2025</p>
                         </div>
                       </div>
+                      <div className="flex items-center gap-2 lg:gap-3">
+                        <MapPin className="h-5 w-5 text-slate-700" />
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.12em] text-slate-600">Venue</p>
+                          <p className="text-sm lg:text-base font-semibold text-slate-900">Zachry Engineering Center</p>
+                        </div>
+                      </div>
+                    </div>
                     </div>
                 </div>
               </div>
@@ -214,7 +217,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
           {/* Subtle connecting gradient fade from banner to metrics */}
           <div className="absolute -top-4 left-0 right-0 h-6 bg-linear-to-b from-slate-50/30 to-transparent pointer-events-none" />
           
-          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl" style={{ borderTopColor: `${sponsor.color}30` }}>
+          <div className="group relative overflow-hidden rounded-2xl border-2 border-emerald-200 bg-white/90 p-5 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-emerald-300">
             <div className="absolute inset-0 bg-linear-to-br from-emerald-200/60 via-emerald-100/40 to-transparent" />
             <div className="relative flex items-center gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm">
@@ -227,7 +230,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
             </div>
           </div>
 
-          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl">
+          <div className="group relative overflow-hidden rounded-2xl border-2 border-amber-200 bg-white/90 p-5 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-amber-300">
             <div className="absolute inset-0 bg-linear-to-br from-amber-200/60 via-amber-100/40 to-transparent" />
             <div className="relative flex items-center gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm">
@@ -240,7 +243,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
             </div>
           </div>
 
-          <div className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-5 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl">
+          <div className="group relative overflow-hidden rounded-2xl border-2 border-slate-300 bg-white/90 p-5 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-slate-400">
             <div className="absolute inset-0 bg-linear-to-br from-slate-200/60 via-slate-100/40 to-transparent" />
             <div className="relative flex items-center gap-3">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm">
