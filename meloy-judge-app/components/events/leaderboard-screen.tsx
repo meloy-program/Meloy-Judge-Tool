@@ -517,11 +517,10 @@ function PostJudgingView() {
     }
   }
 
-  // Get close competitors (within 20 points)
-  const closeCompetitors = sortedTeams.slice(0, 3).filter((team, idx, arr) => {
-    if (idx === 0) return true
-    return arr[idx - 1].totalScore - team.totalScore <= 20
-  })
+  // Calculate average score across all teams
+  const averageScore = Math.round(
+    sortedTeams.reduce((sum, team) => sum + team.totalScore, 0) / sortedTeams.length
+  )
 
   const metrics = [
     {
@@ -533,27 +532,19 @@ function PostJudgingView() {
       bgColor: "from-primary/25 via-primary/10 to-transparent",
     },
     {
-      id: "score-spread",
-      label: "Score Spread",
-      value: `${sortedTeams[0].totalScore - sortedTeams[sortedTeams.length - 1].totalScore} pts`,
+      id: "average-score",
+      label: "Average Score",
+      value: `${averageScore} pts`,
       icon: BarChart3,
       iconColor: "text-sky-500",
       bgColor: "from-sky-200/60 via-sky-100/40 to-transparent",
-    },
-    {
-      id: "close-race",
-      label: "Close Race",
-      value: closeCompetitors.length > 1 ? `Top ${closeCompetitors.length}` : "Clear Winner",
-      icon: Trophy,
-      iconColor: "text-amber-500",
-      bgColor: "from-amber-200/60 via-amber-100/40 to-transparent",
     },
   ]
 
   return (
     <div className="space-y-6">
       {/* Metrics Row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {metrics.map((metric) => {
           const Icon = metric.icon
           return (
@@ -634,17 +625,6 @@ function PostJudgingView() {
                 )
               })}
             </div>
-            
-            {/* Calibration insight */}
-            <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-4">
-              <p className="text-sm font-semibold text-blue-900 mb-1 flex items-center gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Judging Pattern Insight
-              </p>
-              <p className="text-sm text-blue-800">
-                Scores appear relatively consistent throughout the session. No significant calibration drift detected.
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -670,27 +650,18 @@ function PostJudgingView() {
       {/* Team Rankings with Selection */}
       {sortedTeams.map((team) => {
         const isSelected = selectedTeams.includes(team.rank)
-        const isClose = closeCompetitors.some(t => t.teamName === team.teamName)
         
         return (
           <Card 
             key={team.rank} 
             className={`relative overflow-hidden rounded-[28px] border bg-white/95 shadow-md transition-all hover:-translate-y-0.5 hover:shadow-xl cursor-pointer ${
               isSelected ? 'border-primary border-2 ring-2 ring-primary/20' : 'border-slate-200/80'
-            } ${isClose && !isSelected ? 'border-amber-300' : ''}`}
+            }`}
             onClick={() => toggleTeamSelection(team.rank)}
           >
             <div className={`absolute inset-x-0 top-0 h-1 opacity-60 ${
               isSelected ? 'bg-primary' : 'bg-linear-to-r from-primary via-rose-400 to-orange-300'
             }`} />
-            
-            {isClose && (
-              <div className="absolute top-4 right-4">
-                <Badge className="bg-amber-500 text-white text-xs px-2 py-1 rounded-full">
-                  Close Race
-                </Badge>
-              </div>
-            )}
             
             <CardHeader className="flex flex-col gap-4 p-7 pb-5">
               <div className="flex flex-wrap items-start justify-between gap-5">
@@ -745,60 +716,81 @@ function PostJudgingView() {
             </CardHeader>
 
             <CardContent className="space-y-5 px-7 pb-7">
-              {/* Compact Category Performance */}
+              {/* Category Scores Matrix - Shows each judge's score per category */}
               <div>
-                <h3 className="text-sm font-semibold mb-3 text-slate-700">Category Breakdown</h3>
-                <div className="grid grid-cols-4 gap-2">
+                <h3 className="text-sm font-semibold mb-3 text-slate-700">Score Breakdown by Category</h3>
+                <div className="rounded-xl border border-primary/20 bg-white overflow-hidden shadow-md">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-5 gap-px bg-white">
+                    <div className="bg-linear-to-br from-primary to-[#3d0000] px-3 py-3">
+                      <p className="text-xs font-semibold text-white">Category</p>
+                    </div>
+                    {team.judges.sort((a, b) => a.order - b.order).map((judge, idx) => (
+                      <div key={idx} className="bg-linear-to-br from-primary to-[#3d0000] px-2 py-3 text-center">
+                        <p className="text-xs font-semibold text-white truncate">{judge.name.split(' ')[1]}</p>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Category Rows */}
                   {rubricOrder.map((category) => {
-                    const avgScore =
-                      team.judges.reduce((sum, judge) => sum + judge.breakdown[category.key as keyof typeof judge.breakdown], 0) /
-                      team.judges.length
-                    const maxScore = category.maxScore * team.judges.length // e.g., 25 * 4 = 100
-                    const percentage = (avgScore / category.maxScore) * 100
+                    const Icon = category.icon
+                    const categoryTotal = team.judges.reduce(
+                      (sum, judge) => sum + judge.breakdown[category.key as keyof typeof judge.breakdown], 
+                      0
+                    )
+                    const maxCategoryTotal = category.maxScore * team.judges.length // e.g., 25 × 4 = 100
                     const consensus = team.categoryConsensus[category.key as keyof typeof team.categoryConsensus]
-
+                    
                     return (
-                      <div key={category.key} className="space-y-2">
-                        <div className="text-center">
-                          <p className="text-xs text-slate-600 mb-1">{category.short}</p>
-                          <p className="text-base font-bold text-slate-900">
-                            {Math.round(avgScore * team.judges.length)}/{maxScore}
-                          </p>
-                          {consensus === 'high' && (
-                            <div className="flex justify-center mt-1">
-                              <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" title="High agreement" />
+                      <div key={category.key} className="grid grid-cols-5 gap-px bg-primary/10">
+                        <div className="bg-white px-3 py-3 flex items-center gap-2 border-l-4 border-primary/40">
+                          <Icon className="h-4 w-4 text-primary shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-900 truncate">{category.short}</p>
+                            <p className="text-xs text-slate-500">
+                              {categoryTotal}/{maxCategoryTotal}
+                              {consensus === 'high' && (
+                                <span className="ml-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" title="High agreement" />
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        {team.judges.sort((a, b) => a.order - b.order).map((judge, idx) => {
+                          const score = judge.breakdown[category.key as keyof typeof judge.breakdown]
+                          const percentage = (score / category.maxScore) * 100
+                          return (
+                            <div key={idx} className="bg-white px-2 py-3">
+                              <div className="text-center mb-1.5">
+                                <p className="text-base font-bold text-slate-900">{score}</p>
+                                <p className="text-xs text-slate-500">/{category.maxScore}</p>
+                              </div>
+                              <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full bg-linear-to-r from-primary to-[#3d0000] transition-all" 
+                                  style={{ width: `${percentage}%` }} 
+                                />
+                              </div>
                             </div>
-                          )}
-                        </div>
-                        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full rounded-full bg-primary transition-all" 
-                            style={{ width: `${percentage}%` }} 
-                          />
-                        </div>
+                          )
+                        })}
                       </div>
                     )
                   })}
-                </div>
-              </div>
-
-              {/* Judge Score Distribution */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3 text-slate-700">Judge Scores</h3>
-                <div className="flex items-center gap-2">
-                  {team.judges.sort((a, b) => a.order - b.order).map((judge, idx) => (
-                    <div key={idx} className="flex-1">
-                      <div className="relative h-24 bg-slate-100 rounded-lg overflow-hidden">
-                        <div 
-                          className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-primary to-primary/80 transition-all flex items-end justify-center pb-2"
-                          style={{ height: `${(judge.score / 100) * 100}%` }}
-                        >
-                          <span className="text-xs font-bold text-white">{judge.score}</span>
-                        </div>
-                      </div>
-                      <p className="text-xs text-center text-slate-600 mt-2 truncate">{judge.name.split(' ')[1]}</p>
+                  
+                  {/* Total Row */}
+                  <div className="grid grid-cols-5 gap-px bg-primary/10">
+                    <div className="bg-linear-to-br from-primary/90 to-[#3d0000]/90 px-3 py-3 border-l-4 border-primary">
+                      <p className="text-sm font-bold text-white">Total</p>
+                      <p className="text-xs text-white/90">{team.totalScore}/{maxPossibleScore}</p>
                     </div>
-                  ))}
+                    {team.judges.sort((a, b) => a.order - b.order).map((judge, idx) => (
+                      <div key={idx} className="bg-linear-to-br from-primary/90 to-[#3d0000]/90 px-2 py-3 text-center">
+                        <p className="text-lg font-bold text-white">{judge.score}</p>
+                        <p className="text-xs text-white/90">/100</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 

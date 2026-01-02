@@ -149,6 +149,6 @@
   }
   body {
     /* Increased base font size for better tablet readability */
-    @apply bg-background text-foreground text-lg;
+    @apply bg-background text-foreground text-lg m-0 p-0;
   }
 }

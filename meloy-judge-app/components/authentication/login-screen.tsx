@@ -74,20 +74,30 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       placeholder="judge@tamu.edu"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      required
                       className="h-12 rounded-xl border-slate-200 bg-white/90 px-4 text-base shadow-inner focus-visible:border-primary/60"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-                      Password
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password" className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Password
+                      </Label>
+                      <button
+                        type="button"
+                        className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                        onClick={() => {
+                          // Handle forgot password
+                          console.log("Forgot password clicked")
+                        }}
+                      >
+                        Forgot Password?
+                      </button>
+                    </div>
                     <Input
                       id="password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
                       className="h-12 rounded-xl border-slate-200 bg-white/90 px-4 text-base shadow-inner focus-visible:border-primary/60"
                     />
                   </div>
@@ -97,23 +107,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       className="flex h-12 w-full items-center justify-center rounded-xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
                     >
                       <CheckCircle2 className="mr-2 h-5 w-5" />
-                      Login as Judge
+                      Login
                     </Button>
                   </div>
-                  <div className="relative flex items-center justify-center py-2">
-                    <span className="h-px w-full bg-slate-200" />
-                    <span className="absolute bg-white px-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-                      Or
-                    </span>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex h-12 w-full items-center justify-center rounded-xl border-slate-200 text-base font-semibold text-slate-600 transition-transform hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
-                    onClick={(e) => handleSubmit(e, true)}
-                  >
-                    Login as Admin
-                  </Button>
                 </form>
               </TabsContent>
 
@@ -127,7 +123,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       id="signup-name"
                       type="text"
                       placeholder="John Doe"
-                      required
                       className="h-12 rounded-xl border-slate-200 bg-white/90 px-4 text-base shadow-inner focus-visible:border-primary/60"
                     />
                   </div>
@@ -139,7 +134,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       id="signup-email"
                       type="email"
                       placeholder="judge@tamu.edu"
-                      required
                       className="h-12 rounded-xl border-slate-200 bg-white/90 px-4 text-base shadow-inner focus-visible:border-primary/60"
                     />
                   </div>
@@ -150,7 +144,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     <Input
                       id="signup-password"
                       type="password"
-                      required
                       className="h-12 rounded-xl border-slate-200 bg-white/90 px-4 text-base shadow-inner focus-visible:border-primary/60"
                     />
                   </div>
