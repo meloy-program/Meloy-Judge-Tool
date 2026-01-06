@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Screen } from "@/app/page"
-import { ArrowLeft, BarChart3, Users, CheckCircle2, Clock, Circle, MapPin, CalendarDays, Activity, Settings } from "lucide-react"
+import { ArrowLeft, BarChart3, Users, CheckCircle2, Clock, Circle, MapPin, CalendarDays, Activity, Settings, User } from "lucide-react"
 
 interface EventDetailScreenProps {
   eventId: string
@@ -16,6 +16,7 @@ interface EventDetailScreenProps {
   onManageEvent: (eventId: string) => void
   onOpenModerator: () => void
   isAdmin: boolean
+  judgeName: string | null
 }
 
 const mockTeams = [
@@ -63,7 +64,7 @@ const mockTeams = [
   },
 ]
 
-export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, onManageEvent, onOpenModerator, isAdmin }: EventDetailScreenProps) {
+export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, onManageEvent, onOpenModerator, isAdmin, judgeName }: EventDetailScreenProps) {
   const gradedCount = mockTeams.filter((t) => t.status === "graded").length
   const totalCount = mockTeams.length
   const inProgressCount = mockTeams.filter((t) => t.status === "in-progress").length
@@ -112,6 +113,12 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
             </div>
 
             <div className="flex items-center gap-3">
+              {!isAdmin && judgeName && (
+                <Badge className="flex h-11 items-center gap-2 rounded-xl border border-white/25 bg-white/15 px-5 text-base font-semibold text-white backdrop-blur-md">
+                  <User className="h-5 w-5" />
+                  {judgeName}
+                </Badge>
+              )}
               <Button
                 onClick={() => onNavigate("leaderboard")}
                 className="h-11 rounded-full bg-white px-5 lg:px-6 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95"

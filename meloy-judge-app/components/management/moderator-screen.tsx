@@ -129,6 +129,13 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
   const [teams, setTeams] = useState(mockTeams)
   const [eventStatus, setEventStatus] = useState<"not-started" | "in-progress" | "ended">("in-progress")
 
+  // Mock sponsor data - replace with real data later
+  const sponsor = { 
+    name: "ExxonMobil", 
+    logo: "/ExxonLogo.png",
+    color: "#500000"
+  }
+
   const teamsCompleted = teams.filter((t) => t.status === "completed").length
   const teamsActive = teams.filter((t) => t.status === "active").length
   const teamsWaiting = teams.filter((t) => t.status === "waiting").length
@@ -168,18 +175,44 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
                 <p className="text-sm text-white/85">Aggies Invent Spring 2025 - Live Control</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Badge className="flex h-10 items-center gap-2 rounded-xl border border-white/25 bg-white/15 px-4 py-2 text-sm font-semibold text-white backdrop-blur-md">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                Live Event
-              </Badge>
-            </div>
           </div>
         </div>
       </div>
 
       <div className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-5 lg:py-6 lg:px-8">
+          {/* Company/Sponsor Card with Event Phase */}
+          <div className="relative mb-6 overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
+            <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+              
+              <div className="relative flex items-center justify-between">
+                {/* Sponsor block */}
+                <div className="group relative flex items-center gap-5 lg:gap-6">
+                  <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
+                    <Image
+                      src={sponsor.logo}
+                      alt={sponsor.name}
+                      width={120}
+                      height={60}
+                      className="relative h-14 lg:h-16 w-auto max-w-[180px] lg:max-w-[220px] object-contain"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
+                    <p className="text-xl lg:text-2xl font-semibold text-white leading-tight">{sponsor.name}</p>
+                  </div>
+                </div>
+
+                {/* Event Phase Status */}
+                <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="mb-6 grid grid-cols-4 gap-4">
             <Card className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-6 backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl">
               <div className="absolute inset-0 bg-linear-to-br from-primary/25 via-primary/10 to-transparent" />

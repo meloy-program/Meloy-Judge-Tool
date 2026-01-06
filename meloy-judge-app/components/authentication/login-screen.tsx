@@ -107,9 +107,23 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                       className="flex h-12 w-full items-center justify-center rounded-xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
                     >
                       <CheckCircle2 className="mr-2 h-5 w-5" />
-                      Login
+                      Login as Judge
                     </Button>
                   </div>
+                  <div className="relative flex items-center justify-center py-2">
+                    <span className="h-px w-full bg-slate-200" />
+                    <span className="absolute bg-white px-4 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Or
+                    </span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex h-12 w-full items-center justify-center rounded-xl border-slate-200 text-base font-semibold text-slate-600 transition-transform hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
+                    onClick={(e) => handleSubmit(e, true)}
+                  >
+                    Login as Admin
+                  </Button>
                 </form>
               </TabsContent>
 

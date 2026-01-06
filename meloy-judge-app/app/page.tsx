@@ -5,6 +5,7 @@ import { LoginScreen } from "@/components/authentication/login-screen"
 import { DashboardScreen } from "@/components/dashboard/dashboard-screen"
 import { EventDetailScreen } from "@/components/events/event-detail-screen"
 import { TeamDetailScreen } from "@/components/judging/team-detail-screen"
+import { JudgeSelectionScreen } from "@/components/judging/judge-selection-screen"
 import { LeaderboardScreen } from "@/components/events/leaderboard-screen"
 import { AdminScreen } from "@/components/management/admin-screen"
 import { EventCreationScreen } from "@/components/management/event-creation-screen"
@@ -13,7 +14,7 @@ import { InsightsScreen } from "@/components/management/insights-screen"
 import { ModeratorScreen } from "@/components/management/moderator-screen"
 import { SettingsScreen } from "@/components/settings/settings-screen"
 
-export type Screen = "login" | "dashboard" | "event-detail" | "team-detail" | "leaderboard" | "admin" | "settings" | "event-creation" | "event-manager" | "insights" | "moderator"
+export type Screen = "login" | "dashboard" | "judge-selection" | "event-detail" | "team-detail" | "leaderboard" | "admin" | "settings" | "event-creation" | "event-manager" | "insights" | "moderator"
 
 export default function Home() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("login")
@@ -22,14 +23,27 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [managingEventId, setManagingEventId] = useState<string | null>(null)
   const [previousScreen, setPreviousScreen] = useState<Screen | null>(null)
+  const [judgeId, setJudgeId] = useState<string | null>(null)
+  const [judgeName, setJudgeName] = useState<string | null>(null)
 
   const handleLogin = (admin = false) => {
-    setIsAdmin(true) // Always set as admin for now
+    setIsAdmin(admin)
     setCurrentScreen("dashboard")
   }
 
   const handleSelectEvent = (eventId: string) => {
     setSelectedEventId(eventId)
+    // If judge, show judge selection screen first
+    if (!isAdmin) {
+      setCurrentScreen("judge-selection")
+    } else {
+      setCurrentScreen("event-detail")
+    }
+  }
+
+  const handleSelectJudge = (selectedJudgeId: string, selectedJudgeName: string) => {
+    setJudgeId(selectedJudgeId)
+    setJudgeName(selectedJudgeName)
     setCurrentScreen("event-detail")
   }
 
@@ -39,7 +53,9 @@ export default function Home() {
   }
 
   const handleBack = () => {
-    if (currentScreen === "team-detail") {
+    if (currentScreen === "judge-selection") {
+      setCurrentScreen("dashboard")
+    } else if (currentScreen === "team-detail") {
       setCurrentScreen("event-detail")
     } else if (currentScreen === "leaderboard") {
       setCurrentScreen("event-detail")
@@ -108,6 +124,14 @@ export default function Home() {
       {currentScreen === "dashboard" && (
         <DashboardScreen onSelectEvent={handleSelectEvent} onNavigate={setCurrentScreen} isAdmin={isAdmin} />
       )}
+      {currentScreen === "judge-selection" && selectedEventId && (
+        <JudgeSelectionScreen
+          eventId={selectedEventId}
+          eventName="Aggies Invent Spring 2025"
+          onSelectJudge={handleSelectJudge}
+          onBack={handleBack}
+        />
+      )}
       {currentScreen === "event-detail" && selectedEventId && (
         <EventDetailScreen
           eventId={selectedEventId}
@@ -117,13 +141,14 @@ export default function Home() {
           onManageEvent={handleManageEvent}
           onOpenModerator={() => setCurrentScreen("moderator")}
           isAdmin={isAdmin}
+          judgeName={judgeName}
         />
       )}
       {currentScreen === "team-detail" && selectedTeamId && (
-        <TeamDetailScreen teamId={selectedTeamId} onBack={handleBack} />
+        <TeamDetailScreen teamId={selectedTeamId} onBack={handleBack} judgeName={judgeName} />
       )}
       {currentScreen === "leaderboard" && selectedEventId && (
-        <LeaderboardScreen eventId={selectedEventId} onBack={handleBack} />
+        <LeaderboardScreen eventId={selectedEventId} onBack={handleBack} judgeName={judgeName} />
       )}
       {currentScreen === "moderator" && selectedEventId && (
         <ModeratorScreen eventId={selectedEventId} onBack={handleBack} />

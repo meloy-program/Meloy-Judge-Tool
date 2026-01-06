@@ -8,11 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { ArrowLeft, Trophy, Medal, Award, BarChart3, MessageSquare, TrendingUp, Users, Clock, Megaphone, BadgeDollarSign, Presentation, Sparkles } from "lucide-react"
+import { ArrowLeft, Trophy, Medal, Award, BarChart3, MessageSquare, TrendingUp, Users, Clock, Megaphone, BadgeDollarSign, Presentation, Sparkles, User, CalendarDays, MapPin } from "lucide-react"
 
 interface LeaderboardScreenProps {
   eventId: string
   onBack: () => void
+  judgeName: string | null
 }
 
 const rubricOrder = [
@@ -263,8 +264,15 @@ const mockLeaderboard = [
   },
 ]
 
-export function LeaderboardScreen({ eventId, onBack }: LeaderboardScreenProps) {
+export function LeaderboardScreen({ eventId, onBack, judgeName }: LeaderboardScreenProps) {
   const [isPostJudging, setIsPostJudging] = useState(true) // Default to Post Judging view
+
+  // Mock sponsor data - replace with real data later
+  const sponsor = { 
+    name: "ExxonMobil", 
+    logo: "/ExxonLogo.png",
+    color: "#500000"
+  }
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-primary/5">
@@ -289,17 +297,25 @@ export function LeaderboardScreen({ eventId, onBack }: LeaderboardScreenProps) {
               </div>
             </div>
 
-            {/* Toggle between modes */}
-            <div className="flex items-center gap-3 rounded-xl border border-white/25 bg-white/15 px-4 py-3 backdrop-blur-md shadow-lg">
-              <Label htmlFor="mode-toggle" className="text-sm font-medium text-white cursor-pointer">
-                {isPostJudging ? "Post Judging" : "During Judging"}
-              </Label>
-              <Switch
-                id="mode-toggle"
-                checked={isPostJudging}
-                onCheckedChange={setIsPostJudging}
-                className="data-[state=checked]:bg-white/30"
-              />
+            <div className="flex items-center gap-3">
+              {judgeName && (
+                <Badge className="flex h-11 items-center gap-2 rounded-xl border border-white/40 bg-white/15 px-4 text-sm font-medium text-white backdrop-blur-md">
+                  <User className="h-4 w-4" />
+                  <span>{judgeName}</span>
+                </Badge>
+              )}
+              {/* Toggle between modes */}
+              <div className="flex items-center gap-3 rounded-xl border border-white/25 bg-white/15 px-4 py-3 backdrop-blur-md shadow-lg">
+                <Label htmlFor="mode-toggle" className="text-sm font-medium text-white cursor-pointer">
+                  {isPostJudging ? "Post Judging" : "During Judging"}
+                </Label>
+                <Switch
+                  id="mode-toggle"
+                  checked={isPostJudging}
+                  onCheckedChange={setIsPostJudging}
+                  className="data-[state=checked]:bg-white/30"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -357,6 +373,38 @@ function DuringJudgingView() {
 
   return (
     <div className="space-y-6">
+      {/* Company/Sponsor Card with Event Phase */}
+      <div className="relative overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
+        <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+          
+          <div className="relative flex items-center justify-between">
+            {/* Sponsor block */}
+            <div className="group relative flex items-center gap-5 lg:gap-6">
+              <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
+                <Image
+                  src="/ExxonLogo.png"
+                  alt="ExxonMobil"
+                  width={120}
+                  height={60}
+                  className="relative h-14 lg:h-16 w-auto max-w-[180px] lg:max-w-[220px] object-contain"
+                />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
+                <p className="text-xl lg:text-2xl font-semibold text-white leading-tight">ExxonMobil</p>
+              </div>
+            </div>
+
+            {/* Event Phase Status */}
+            <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Metrics Row */}
       <div className="grid grid-cols-3 gap-4">
         {metrics.map((metric) => {
@@ -543,6 +591,38 @@ function PostJudgingView() {
 
   return (
     <div className="space-y-6">
+      {/* Company/Sponsor Card with Event Phase */}
+      <div className="relative overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
+        <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+          
+          <div className="relative flex items-center justify-between">
+            {/* Sponsor block */}
+            <div className="group relative flex items-center gap-5 lg:gap-6">
+              <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
+                <Image
+                  src="/ExxonLogo.png"
+                  alt="ExxonMobil"
+                  width={120}
+                  height={60}
+                  className="relative h-14 lg:h-16 w-auto max-w-[180px] lg:max-w-[220px] object-contain"
+                />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
+                <p className="text-xl lg:text-2xl font-semibold text-white leading-tight">ExxonMobil</p>
+              </div>
+            </div>
+
+            {/* Event Phase Status */}
+            <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
+              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Metrics Row */}
       <div className="grid grid-cols-2 gap-4">
         {metrics.map((metric) => {

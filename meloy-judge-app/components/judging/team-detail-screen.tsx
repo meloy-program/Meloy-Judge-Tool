@@ -8,11 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea"
 import { Slider } from "@/components/ui/slider"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Users, Megaphone, BadgeDollarSign, Presentation, Sparkles, Save } from "lucide-react"
+import { ArrowLeft, Users, Megaphone, BadgeDollarSign, Presentation, Sparkles, Save, User, CalendarDays, MapPin } from "lucide-react"
 
 interface TeamDetailScreenProps {
   teamId: string
   onBack: () => void
+  judgeName: string | null
 }
 
 const mockTeam = {
@@ -58,8 +59,8 @@ const gradingCriteria = [
     description: "Reflect on the pitch strength, Q&A performance, and your gut confidence.",
     maxScore: 25,
     icon: Sparkles,
-    question: "Do you leave the table feeling inspired to see this team advance to the next stage?",
-  },
+  question: "Do you leave the table feeling inspired to see this team advance to the next stage?",
+},
 ] satisfies Array<{
   id: string
   name: string
@@ -69,7 +70,7 @@ const gradingCriteria = [
   question: string
 }>
 
-export function TeamDetailScreen({ teamId, onBack }: TeamDetailScreenProps) {
+export function TeamDetailScreen({ teamId, onBack, judgeName }: TeamDetailScreenProps) {
   const [scores, setScores] = useState<Record<string, number>>(
     gradingCriteria.reduce(
       (acc, criteria) => ({
@@ -82,6 +83,13 @@ export function TeamDetailScreen({ teamId, onBack }: TeamDetailScreenProps) {
   const [reflections, setReflections] = useState<Record<string, string>>({})
   const [comments, setComments] = useState("")
   const [isSaving, setIsSaving] = useState(false)
+
+  // Mock sponsor data - replace with real data later
+  const sponsor = { 
+    name: "ExxonMobil", 
+    logo: "/ExxonLogo.png",
+    color: "#500000"
+  }
 
   const totalScore = Object.values(scores).reduce((sum, score) => sum + score, 0)
   const maxTotalScore = gradingCriteria.reduce((sum, criteria) => sum + criteria.maxScore, 0)
@@ -131,10 +139,18 @@ export function TeamDetailScreen({ teamId, onBack }: TeamDetailScreenProps) {
                 <p className="text-sm text-white/80">Table {mockTeam.tableNumber}</p>
               </div>
             </div>
-            <Badge className="flex flex-col items-start gap-2 rounded-full border border-white/40 bg-white/20 px-4 py-2 text-sm font-semibold text-white sm:flex-row sm:items-center sm:gap-4">
-              <span>Total Score {totalScore}/{maxTotalScore}</span>
-              <span className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Team {teamId}</span>
-            </Badge>
+            <div className="flex items-center gap-3">
+              {judgeName && (
+                <Badge className="flex h-11 items-center gap-2 rounded-xl border border-white/40 bg-white/15 px-4 text-sm font-medium text-white backdrop-blur-md">
+                  <User className="h-4 w-4" />
+                  <span>{judgeName}</span>
+                </Badge>
+              )}
+              <Badge className="flex flex-col items-start gap-2 rounded-full border border-white/40 bg-white/20 px-4 py-2 text-sm font-semibold text-white sm:flex-row sm:items-center sm:gap-4">
+                <span>Total Score {totalScore}/{maxTotalScore}</span>
+                <span className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Team {teamId}</span>
+              </Badge>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-6 rounded-4xl border border-white/25 bg-white/10 px-7 py-5 text-white/90">
@@ -154,6 +170,38 @@ export function TeamDetailScreen({ teamId, onBack }: TeamDetailScreenProps) {
       </header>
 
       <main className="relative mx-auto max-w-4xl px-6 py-5 lg:py-6 lg:px-8">
+        {/* Company/Sponsor Card with Event Phase */}
+        <div className="relative mb-6 overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
+          <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
+            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+            
+            <div className="relative flex items-center justify-between">
+              {/* Sponsor block */}
+              <div className="group relative flex items-center gap-5 lg:gap-6">
+                <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
+                  <Image
+                    src={sponsor.logo}
+                    alt={sponsor.name}
+                    width={120}
+                    height={60}
+                    className="relative h-14 lg:h-16 w-auto max-w-[180px] lg:max-w-[220px] object-contain"
+                  />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
+                  <p className="text-xl lg:text-2xl font-semibold text-white leading-tight">{sponsor.name}</p>
+                </div>
+              </div>
+
+              {/* Event Phase Status */}
+              <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <section className="space-y-9">
           <div>
             <h2 className="text-[2rem] font-semibold text-slate-900">Judging Rubric</h2>

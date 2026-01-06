@@ -22,6 +22,7 @@ import {
   Target,
   Download,
   Timer,
+  Search,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -37,10 +38,15 @@ interface AdminScreenProps {
   onManageEvent: (eventId: string) => void
 }
 
-const mockJudges = [
-  { id: "1", name: "Dr. Sarah Johnson", email: "sjohnson@tamu.edu", eventsAssigned: 2, status: "active" },
-  { id: "2", name: "Prof. Michael Chen", email: "mchen@tamu.edu", eventsAssigned: 1, status: "active" },
-  { id: "3", name: "Dr. Emily Rodriguez", email: "erodriguez@tamu.edu", eventsAssigned: 3, status: "active" },
+const mockAccounts = [
+  { id: "1", name: "Dr. Sarah Johnson", email: "sjohnson@tamu.edu", isJudge: true, isAdmin: false, isModerator: false },
+  { id: "2", name: "Prof. Michael Chen", email: "mchen@tamu.edu", isJudge: true, isAdmin: true, isModerator: false },
+  { id: "3", name: "Dr. Emily Rodriguez", email: "erodriguez@tamu.edu", isJudge: false, isAdmin: false, isModerator: true },
+  { id: "4", name: "Dr. James Wilson", email: "jwilson@tamu.edu", isJudge: true, isAdmin: false, isModerator: true },
+  { id: "5", name: "Prof. Lisa Anderson", email: "landerson@tamu.edu", isJudge: false, isAdmin: true, isModerator: false },
+  { id: "6", name: "Dr. Robert Taylor", email: "rtaylor@tamu.edu", isJudge: true, isAdmin: false, isModerator: false },
+  { id: "7", name: "Dr. Maria Garcia", email: "mgarcia@tamu.edu", isJudge: false, isAdmin: true, isModerator: true },
+  { id: "8", name: "Prof. David Lee", email: "dlee@tamu.edu", isJudge: true, isAdmin: false, isModerator: false },
 ]
 
 const mockEvents = [
@@ -100,10 +106,12 @@ const teamSpotlight = {
 
 export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScreenProps) {
   const [newJudgeEmail, setNewJudgeEmail] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [editingAccountId, setEditingAccountId] = useState<string | null>(null)
 
   const activeEvents = mockEvents.filter((event) => event.status === "active").length
   const totalEvents = mockEvents.length
-  const totalJudges = mockJudges.length
+  const totalJudges = mockAccounts.filter(account => account.isJudge).length
 
   const highlightMetrics = [
     {
@@ -200,11 +208,11 @@ export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScree
                 Events
               </TabsTrigger>
               <TabsTrigger
-                value="judges"
+                value="accounts"
                 className="flex h-full items-center justify-center rounded-xl border border-transparent text-base font-semibold text-slate-600 transition-all duration-300 data-[state=active]:border-primary/30 data-[state=active]:bg-linear-to-r data-[state=active]:from-primary/10 data-[state=active]:to-primary/20 data-[state=active]:text-primary data-[state=active]:shadow-md"
               >
-                <UsersRound className="mr-2 h-5 w-5" />
-                Judges
+                <Shield className="mr-2 h-5 w-5" />
+                Accounts
               </TabsTrigger>
               <TabsTrigger
                 value="insights"
@@ -318,90 +326,193 @@ export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScree
                 </Card>
               </TabsContent>
 
-              <TabsContent value="judges" className="space-y-8">
-                <Card className="overflow-hidden rounded-3xl border-none bg-linear-to-br from-[#2b295f] via-[#513b8a] to-[#7c2d7c] text-white shadow-2xl">
-                  <CardHeader className="p-8 pb-6">
-                    <CardTitle className="flex items-center gap-3 text-2xl font-semibold">
-                      <Mail className="h-6 w-6" />
-                      Invite a Judge Mentor
-                    </CardTitle>
-                    <CardDescription className="text-base text-white/80">
-                      Share a curated welcome kit and onboarding checklist in a single tap.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-8 pt-0">
-                    <div className="flex flex-col gap-4 md:flex-row">
-                      <div className="flex-1 space-y-2">
-                        <Label htmlFor="judge-email" className="text-base font-semibold uppercase tracking-[0.2em] text-white/70">
-                          Email address
-                        </Label>
-                        <Input
-                          id="judge-email"
-                          type="email"
-                          placeholder="judge@example.com"
-                          value={newJudgeEmail}
-                          onChange={(e) => setNewJudgeEmail(e.target.value)}
-                          className="h-12 rounded-xl border-white/30 bg-white/10 px-4 text-base text-white placeholder:text-white/60"
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <Button className="h-12 rounded-xl bg-white px-6 text-base font-semibold text-[#513b8a] shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl">
-                          <Mail className="mr-2 h-5 w-5" />
-                          Send invite
-                        </Button>
+              <TabsContent value="accounts" className="space-y-8">
+                <div>
+                  <div className="mb-6">
+                    <h3 className="text-3xl font-semibold text-slate-800">Account Permissions</h3>
+                    <p className="mt-2 text-base text-slate-600">Manage user roles and access levels across the platform</p>
+                  </div>
+
+                  <div className="mb-6">
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+                      <Input
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search accounts by name or email..."
+                        className="h-14 rounded-2xl border-slate-200 bg-white pl-12 pr-4 text-base shadow-lg focus-visible:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary/20"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="relative overflow-hidden rounded-3xl shadow-2xl">
+                    <div className="absolute inset-0 bg-linear-to-b from-primary to-[#3d0000]" />
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
+                    
+                    <div className="relative max-h-[600px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-white/5">
+                      <div className="divide-y divide-white/10">
+                        {mockAccounts
+                          .filter((account) => 
+                            account.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            account.email.toLowerCase().includes(searchQuery.toLowerCase())
+                          )
+                          .map((account, index) => (
+                          <div
+                            key={account.id}
+                            className="group relative p-6 transition-all hover:bg-white/5"
+                          >
+                            <div className="flex items-center justify-between gap-6">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-4">
+                                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 text-white shadow-lg backdrop-blur-sm border border-white/20">
+                                    <Users className="h-6 w-6" />
+                                  </div>
+                                  <div>
+                                    <h4 className="text-lg font-semibold text-white transition-colors">
+                                      {account.name}
+                                    </h4>
+                                    <p className="mt-0.5 flex items-center gap-2 text-sm text-white/70">
+                                      <Mail className="h-3.5 w-3.5" />
+                                      {account.email}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-6">
+                                {editingAccountId === account.id ? (
+                                  <>
+                                    <div className="flex items-center gap-4">
+                                      <button
+                                        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-3 shadow-sm backdrop-blur-sm transition-all hover:shadow-md ${
+                                          account.isJudge
+                                            ? 'border-red-500/60 bg-red-500/20 hover:border-red-400/70 hover:bg-red-500/30'
+                                            : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20'
+                                        }`}
+                                      >
+                                        <span className={`text-sm font-semibold ${
+                                          account.isJudge ? 'text-red-300' : 'text-white/70'
+                                        }`}>
+                                          Judge
+                                        </span>
+                                      </button>
+
+                                      <button
+                                        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-3 shadow-sm backdrop-blur-sm transition-all hover:shadow-md ${
+                                          account.isAdmin
+                                            ? 'border-blue-500/60 bg-blue-500/20 hover:border-blue-400/70 hover:bg-blue-500/30'
+                                            : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20'
+                                        }`}
+                                      >
+                                        <span className={`text-sm font-semibold ${
+                                          account.isAdmin ? 'text-blue-300' : 'text-white/70'
+                                        }`}>
+                                          Admin
+                                        </span>
+                                      </button>
+
+                                      <button
+                                        className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-3 shadow-sm backdrop-blur-sm transition-all hover:shadow-md ${
+                                          account.isModerator
+                                            ? 'border-emerald-500/60 bg-emerald-500/20 hover:border-emerald-400/70 hover:bg-emerald-500/30'
+                                            : 'border-white/20 bg-white/10 hover:border-white/40 hover:bg-white/20'
+                                        }`}
+                                      >
+                                        <span className={`text-sm font-semibold ${
+                                          account.isModerator ? 'text-emerald-300' : 'text-white/70'
+                                        }`}>
+                                          Moderator
+                                        </span>
+                                      </button>
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                      <Button
+                                        onClick={() => setEditingAccountId(null)}
+                                        className="h-10 rounded-xl border-2 border-white/30 bg-white/20 px-5 text-sm font-semibold text-white shadow-sm backdrop-blur-sm transition-all hover:bg-white/30 hover:shadow-md"
+                                      >
+                                        Cancel
+                                      </Button>
+                                      <Button
+                                        onClick={() => {
+                                          // Save logic would go here
+                                          setEditingAccountId(null)
+                                        }}
+                                        className="h-10 rounded-xl border-2 border-white/30 bg-white/20 px-5 text-sm font-semibold text-white shadow-sm backdrop-blur-sm transition-all hover:bg-white/30 hover:shadow-md"
+                                      >
+                                        Save
+                                      </Button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      onClick={() => setEditingAccountId(account.id)}
+                                      className="h-10 rounded-xl border-2 border-white/30 bg-white/10 px-5 text-sm font-semibold text-white shadow-sm backdrop-blur-sm transition-all hover:bg-white/20 hover:shadow-md"
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit
+                                    </Button>
+
+                                    <div className="flex items-center gap-4">
+                                      <div
+                                        className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 shadow-sm backdrop-blur-sm ${
+                                          account.isJudge
+                                            ? 'border-red-500/60 bg-red-500/20'
+                                            : 'border-white/20 bg-white/10'
+                                        }`}
+                                      >
+                                        <span className={`text-sm font-semibold ${
+                                          account.isJudge ? 'text-red-300' : 'text-white/70'
+                                        }`}>
+                                          Judge
+                                        </span>
+                                      </div>
+
+                                      <div
+                                        className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 shadow-sm backdrop-blur-sm ${
+                                          account.isAdmin
+                                            ? 'border-blue-500/60 bg-blue-500/20'
+                                            : 'border-white/20 bg-white/10'
+                                        }`}
+                                      >
+                                        <span className={`text-sm font-semibold ${
+                                          account.isAdmin ? 'text-blue-300' : 'text-white/70'
+                                        }`}>
+                                          Admin
+                                        </span>
+                                      </div>
+
+                                      <div
+                                        className={`flex items-center gap-3 rounded-xl border-2 px-4 py-3 shadow-sm backdrop-blur-sm ${
+                                          account.isModerator
+                                            ? 'border-emerald-500/60 bg-emerald-500/20'
+                                            : 'border-white/20 bg-white/10'
+                                        }`}
+                                      >
+                                        <span className={`text-sm font-semibold ${
+                                          account.isModerator ? 'text-emerald-300' : 'text-white/70'
+                                        }`}>
+                                          Moderator
+                                        </span>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-10 w-10 rounded-xl p-0 text-white/60 transition-all hover:bg-red-500/20 hover:text-red-300 hover:shadow-md"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-
-                <div>
-                  <h3 className="mb-6 text-3xl font-semibold text-slate-800">Judge roster</h3>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {mockJudges.map((judge) => (
-                      <Card
-                        key={judge.id}
-                        className="group rounded-3xl border border-slate-200/80 bg-white/90 shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
-                      >
-                        <CardHeader className="p-6 pb-4">
-                          <div className="flex items-start justify-between gap-4">
-                            <div>
-                              <CardTitle className="text-2xl font-semibold text-slate-800 group-hover:text-primary transition-colors">
-                                {judge.name}
-                              </CardTitle>
-                              <CardDescription className="mt-2 text-base text-slate-600">{judge.email}</CardDescription>
-                            </div>
-                            <Badge className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-                              {judge.eventsAssigned} events
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="px-6 pb-0">
-                          <div className="flex items-center gap-4 text-sm text-slate-500">
-                            <span className="flex items-center gap-2">
-                              <Shield className="h-4 w-4 text-primary" />
-                              {judge.status === "active" ? "Active access" : "Inactive"}
-                            </span>
-                            <span className="flex items-center gap-2">
-                              <Users className="h-4 w-4 text-primary" />
-                              Mentoring {judge.eventsAssigned * 3} teams
-                            </span>
-                          </div>
-                        </CardContent>
-                        <CardFooter className="flex flex-wrap gap-3 border-t border-slate-100/80 p-6">
-                          <Button variant="outline" className="h-11 rounded-xl border-slate-200 px-5 text-sm font-semibold">
-                            View activity
-                          </Button>
-                          <Button variant="outline" className="h-11 rounded-xl border-slate-200 px-5 text-sm font-semibold">
-                            <Edit className="mr-2 h-4 w-4" />
-                            Reassign
-                          </Button>
-                          <Button variant="destructive" className="h-11 rounded-xl px-5 text-sm font-semibold">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Remove
-                          </Button>
-                        </CardFooter>
-                      </Card>
-                    ))}
                   </div>
                 </div>
               </TabsContent>

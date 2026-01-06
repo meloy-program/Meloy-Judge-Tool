@@ -75,6 +75,7 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
   const [sponsorLogo, setSponsorLogo] = useState<string | null>("/TAMUlogo.png")
   const [primaryColor, setPrimaryColor] = useState("#500000")
   const [secondaryColor, setSecondaryColor] = useState("#FFFFFF")
+  const [textColor, setTextColor] = useState("#FFFFFF")
 
   // Judges State
   const [judges, setJudges] = useState<Judge[]>([
@@ -460,7 +461,7 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
                     </div>
                   </div>
 
-                  <div className="grid gap-6 md:grid-cols-2">
+                  <div className="grid gap-6 md:grid-cols-3">
                     <div className="space-y-3">
                       <Label htmlFor="primary-color" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
                         <Palette className="mr-2 inline h-4 w-4" />
@@ -502,21 +503,67 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
                         />
                       </div>
                     </div>
+
+                    <div className="space-y-3">
+                      <Label htmlFor="text-color" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
+                        <Palette className="mr-2 inline h-4 w-4" />
+                        Text Color
+                      </Label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          id="text-color"
+                          type="color"
+                          value={textColor}
+                          onChange={(e) => setTextColor(e.target.value)}
+                          className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 p-1 shadow-inner"
+                        />
+                        <Input
+                          value={textColor}
+                          onChange={(e) => setTextColor(e.target.value)}
+                          className="h-12 flex-1 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
                     <p className="mb-4 text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Live Preview</p>
-                    <div
-                      className="flex h-32 items-center justify-center rounded-xl shadow-lg"
-                      style={{
-                        background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
-                      }}
-                    >
-                      {sponsorLogo && (
-                        <div className="rounded-lg bg-white/95 p-4 shadow-xl backdrop-blur-sm">
-                          <Image src={sponsorLogo} alt="Preview" width={120} height={60} className="object-contain" />
+                    <div className="relative overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
+                      <div 
+                        className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6"
+                        style={{
+                          background: `linear-gradient(to bottom, ${primaryColor}, ${secondaryColor})`,
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
+                        
+                        <div className="relative flex items-center justify-between">
+                          <div className="group relative flex items-center gap-5 lg:gap-6">
+                            <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
+                              {sponsorLogo ? (
+                                <Image
+                                  src={sponsorLogo}
+                                  alt={sponsorName}
+                                  width={120}
+                                  height={60}
+                                  className="relative h-14 lg:h-16 w-auto max-w-[180px] lg:max-w-[220px] object-contain"
+                                />
+                              ) : (
+                                <div className="h-14 w-32 flex items-center justify-center text-slate-400 text-sm">No logo</div>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs uppercase tracking-[0.12em]" style={{ color: `${textColor}CC` }}>Presented by</p>
+                              <p className="text-xl lg:text-2xl font-semibold leading-tight" style={{ color: textColor }}>{sponsorName || 'Sponsor Name'}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
+                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
+                          </div>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
