@@ -30,10 +30,7 @@ export function AdminAccountsTab({ accounts }: AdminAccountsTabProps) {
   return (
     <div className="space-y-8">
       <div>
-        <div className="mb-6">
-          <h3 className="text-3xl font-semibold text-slate-800">Account Permissions</h3>
-          <p className="mt-2 text-base text-slate-600">Manage user roles and access levels across the platform</p>
-        </div>
+
 
         <div className="mb-6">
           <div className="relative">

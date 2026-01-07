@@ -70,7 +70,6 @@ export function SettingsScreen({ onBack, onLogout }: SettingsScreenProps) {
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Settings Hub</h1>
-                <p className="text-sm text-white/85">Tune your profile, credentials, and account controls.</p>
               </div>
             </div>
             <Button onClick={onLogout} className="h-11 rounded-xl bg-white px-5 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95">

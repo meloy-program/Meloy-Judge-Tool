@@ -39,6 +39,10 @@ const mockAccounts = [
 const mockEvents = [
   { id: "1", name: "Aggies Invent Spring 2025", teams: 24, judges: 8, status: "active", date: "Mar 21, 2025" },
   { id: "2", name: "Aggies Invent Fall 2024", teams: 18, judges: 6, status: "completed", date: "Oct 14, 2024" },
+  { id: "3", name: "Problems Worth Solving Summer 2024", teams: 20, judges: 7, status: "completed", date: "Jul 10, 2024" },
+  { id: "4", name: "Aggies Invent Spring 2024", teams: 22, judges: 8, status: "completed", date: "Mar 15, 2024" },
+  { id: "5", name: "Problems Worth Solving Fall 2023", teams: 16, judges: 5, status: "completed", date: "Oct 20, 2023" },
+  { id: "6", name: "Aggies Invent Fall 2023", teams: 19, judges: 6, status: "completed", date: "Oct 12, 2023" },
 ]
 
 type ActivityItem = {
@@ -78,28 +82,6 @@ const recentActivity: ActivityItem[] = [
 ]
 
 export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScreenProps) {
-  const totalEvents = mockEvents.length
-  const totalJudges = mockAccounts.filter(account => account.isJudge).length
-
-  const highlightMetrics = [
-    {
-      id: "total-events",
-      label: "Total events",
-      value: totalEvents.toString(),
-      icon: Calendar,
-      iconColor: "text-primary",
-      bgColor: "bg-primary/5",
-    },
-    {
-      id: "avg-judging-time",
-      label: "Avg judging time",
-      value: "21m",
-      icon: Clock,
-      iconColor: "text-sky-500",
-      bgColor: "bg-sky-50",
-    },
-  ]
-
   // Event history data for the timeline
   const eventHistoryData = [
     {
@@ -136,6 +118,39 @@ export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScree
             { name: "Dr. Brown", communication: 21, fundBuy: 20, presentation: 22, cohesion: 21 },
           ],
           avgTime: 21
+        },
+      ],
+    },
+    {
+      name: "ExxonMobil Innovation Challenge 2024",
+      date: "Aug 5-7, 2024",
+      status: "completed" as const,
+      sponsor: {
+        name: "ExxonMobil",
+        logo: "/ExxonLogo.png",
+        primaryColor: "#E31937",
+        secondaryColor: "#8B1538",
+      },
+      teams: [
+        { 
+          name: "Energy Innovators",
+          judges: [
+            { name: "Dr. Smith", communication: 23, fundBuy: 22, presentation: 23, cohesion: 22 },
+            { name: "Prof. Johnson", communication: 22, fundBuy: 23, presentation: 22, cohesion: 23 },
+            { name: "Dr. Williams", communication: 23, fundBuy: 22, presentation: 23, cohesion: 22 },
+            { name: "Dr. Brown", communication: 22, fundBuy: 23, presentation: 22, cohesion: 23 },
+          ],
+          avgTime: 24
+        },
+        { 
+          name: "Sustainable Solutions",
+          judges: [
+            { name: "Dr. Smith", communication: 22, fundBuy: 21, presentation: 22, cohesion: 21 },
+            { name: "Prof. Johnson", communication: 21, fundBuy: 22, presentation: 21, cohesion: 22 },
+            { name: "Dr. Williams", communication: 22, fundBuy: 21, presentation: 22, cohesion: 21 },
+            { name: "Dr. Brown", communication: 21, fundBuy: 22, presentation: 21, cohesion: 22 },
+          ],
+          avgTime: 23
         },
       ],
     },
@@ -187,7 +202,6 @@ export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScree
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Admin Control Center</h1>
-                <p className="text-sm text-white/90">Orchestrate events, coach judges, and spotlight standout teams.</p>
               </div>
             </div>
           </div>
@@ -195,30 +209,6 @@ export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScree
       </header>
 
       <main className="relative mx-auto max-w-7xl px-6 py-5 lg:py-6 lg:px-8">
-        <div className="mb-8 grid grid-cols-2 gap-4">
-          {highlightMetrics.map((metric) => {
-            const Icon = metric.icon
-
-            return (
-              <div
-                key={metric.id}
-                className="group relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white/90 p-6 shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className={`absolute inset-0 bg-linear-to-br ${metric.bgColor === 'bg-emerald-50' ? 'from-emerald-200/60 via-emerald-100/40 to-transparent' : metric.bgColor === 'bg-primary/5' ? 'from-primary/25 via-primary/10 to-transparent' : 'from-sky-200/60 via-sky-100/40 to-transparent'}`} />
-                <div className="relative flex items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white/80 shadow-sm">
-                    <Icon className={`h-6 w-6 ${metric.iconColor}`} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">{metric.label}</p>
-                    <p className="mt-0.5 text-3xl font-semibold text-slate-900">{metric.value}</p>
-                  </div>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
         <div className="space-y-8">
           <Tabs defaultValue="events" className="w-full">
             <TabsList className="grid h-16 w-full grid-cols-3 rounded-2xl border border-slate-200 bg-white/80 p-2 shadow-lg backdrop-blur">

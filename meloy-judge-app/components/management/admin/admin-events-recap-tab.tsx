@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Calendar, BarChart3, Download, ChevronLeft, ChevronRight } from "lucide-react"
@@ -24,6 +25,12 @@ interface EventHistory {
   date: string
   status: "completed"
   teams: Team[]
+  sponsor?: {
+    name: string
+    logo: string
+    primaryColor: string
+    secondaryColor: string
+  }
 }
 
 interface AdminEventsRecapTabProps {
@@ -34,7 +41,9 @@ export function AdminEventsRecapTab({ eventHistory }: AdminEventsRecapTabProps) 
   const [selectedEventIndex, setSelectedEventIndex] = useState(0)
   const [timelineRange, setTimelineRange] = useState<"6months" | "1year" | "2years" | "all">("1year")
 
-  const event = eventHistory[selectedEventIndex]
+  // Reverse the array for display, but adjust index to match original array
+  const reversedEventHistory = [...eventHistory].reverse()
+  const event = eventHistory[eventHistory.length - 1 - selectedEventIndex]
 
   return (
     <div className="space-y-8">
@@ -69,9 +78,14 @@ export function AdminEventsRecapTab({ eventHistory }: AdminEventsRecapTabProps) 
       <div className="relative overflow-hidden rounded-3xl border-2 border-slate-200/80 bg-linear-to-b from-primary to-[#3d0000] shadow-xl">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
         
-        <div className="relative p-6">
+        <div className="relative p-4">
           <div className="mb-6 flex items-center justify-between">
-            <h4 className="text-lg font-semibold text-white">Events Timeline</h4>
+            <div className="w-[88px]"></div>
+            
+            <h4 className="absolute left-1/2 -translate-x-1/2 text-lg font-semibold uppercase tracking-[0.2em] text-white/70">
+              Events Timeline
+            </h4>
+            
             <div className="flex gap-2">
               <Button
                 onClick={() => setSelectedEventIndex(Math.max(0, selectedEventIndex - 1))}
@@ -91,51 +105,79 @@ export function AdminEventsRecapTab({ eventHistory }: AdminEventsRecapTabProps) 
           </div>
 
           {/* Timeline Track */}
-          <div className="relative overflow-x-auto pb-6 pt-4">
+          <div className="relative overflow-x-auto pb-4 pt-8">
             <div className="flex items-center gap-4 px-4">
               {/* Timeline Line */}
               <div className="absolute left-0 right-0 top-1/2 h-1 bg-linear-to-r from-white/20 via-white/40 to-white/20" />
             
               {/* Event Markers */}
-              {eventHistory.map((evt, index) => (
-                <div
-                  key={index}
-                  className="relative z-10 flex min-w-[200px] flex-col items-center gap-3"
-                >
-                  {/* Event Icon */}
-                  <button
-                    onClick={() => setSelectedEventIndex(index)}
-                    className={`group flex h-16 w-16 items-center justify-center rounded-full border-4 shadow-xl transition-all duration-300 ${
-                      selectedEventIndex === index
-                        ? "border-white bg-white/90 scale-110 -translate-y-1"
-                        : "border-white/60 bg-white/20 backdrop-blur-sm hover:scale-105 hover:-translate-y-0.5 hover:bg-white/30"
-                    }`}
+              {reversedEventHistory.map((evt, index) => {
+                // Abbreviate "Problems Worth Solving" to "PWS"
+                const displayName = evt.name.includes("Problems Worth Solving") 
+                  ? evt.name.replace("Problems Worth Solving", "PWS")
+                  : evt.name.split(" ").slice(0, 2).join(" ")
+                
+                // Determine logo based on event type or sponsor
+                let eventLogo = "/aggiesinvent.png" // default
+                let gradientColors = { from: "#500000", to: "#3d0000" } // default maroon
+                let hasGlassyBackground = true // default for non-sponsored events
+                
+                if (evt.sponsor) {
+                  eventLogo = evt.sponsor.logo
+                  gradientColors = { from: evt.sponsor.primaryColor, to: evt.sponsor.secondaryColor }
+                  hasGlassyBackground = false // no glassy background for sponsored events
+                } else if (evt.name.includes("Problems Worth Solving") || evt.name.includes("PWS")) {
+                  eventLogo = "/pws.png"
+                } else if (evt.name.includes("Aggies Invent")) {
+                  eventLogo = "/aggiesinvent.png"
+                }
+                
+                return (
+                  <div
+                    key={index}
+                    className="relative z-10 flex min-w-[200px] flex-col items-center gap-3"
                   >
-                    <Calendar className={`h-7 w-7 transition-colors ${
-                      selectedEventIndex === index ? "text-primary" : "text-white/80 group-hover:text-white"
-                    }`} />
-                  </button>
-                  
-                  {/* Event Info */}
-                  <div className="text-center">
-                    <div className={`text-sm font-bold transition-colors ${
-                      selectedEventIndex === index ? "text-white" : "text-white/80"
-                    }`}>
-                      {evt.name.split(" ").slice(0, 2).join(" ")}
-                    </div>
-                    <div className={`text-xs ${
-                      selectedEventIndex === index ? "text-white/90" : "text-white/60"
-                    }`}>
-                      {evt.date}
+                    {/* Event Icon - Elevated above timeline */}
+                    <button
+                      onClick={() => setSelectedEventIndex(index)}
+                      className={`group relative flex items-center justify-center transition-all duration-300 ${
+                        selectedEventIndex === index
+                          ? "scale-125 -translate-y-10"
+                          : "hover:scale-110 -translate-y-8 hover:-translate-y-9"
+                      }`}
+                    >
+                      <div className="relative h-28 w-28">
+                        <Image
+                          src={eventLogo}
+                          alt={evt.name}
+                          width={112}
+                          height={112}
+                          className={`h-full w-full object-contain transition-all duration-300 ${
+                            selectedEventIndex === index ? 'drop-shadow-2xl' : 'drop-shadow-xl'
+                          }`}
+                          style={{
+                            filter: 'brightness(0) invert(1)'
+                          }}
+                        />
+                      </div>
+                    </button>
+                    
+                    {/* Event Info */}
+                    <div className="text-center">
+                      <div className={`text-sm font-bold transition-colors ${
+                        selectedEventIndex === index ? "text-white" : "text-white/80"
+                      }`}>
+                        {displayName}
+                      </div>
+                      <div className={`text-xs ${
+                        selectedEventIndex === index ? "text-white/90" : "text-white/60"
+                      }`}>
+                        {evt.date}
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Selection Indicator */}
-                  {selectedEventIndex === index && (
-                    <div className="absolute -bottom-2 h-2 w-2 animate-pulse rounded-full bg-white shadow-lg" />
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>

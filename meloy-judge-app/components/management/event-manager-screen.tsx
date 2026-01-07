@@ -71,7 +71,7 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
   )
 
   // Sponsor State
-  const [sponsorName, setSponsorName] = useState("Texas A&M Engineering")
+  const [sponsorName, setSponsorName] = useState("Meloy Program")
   const [sponsorLogo, setSponsorLogo] = useState<string | null>("/TAMUlogo.png")
   const [primaryColor, setPrimaryColor] = useState("#500000")
   const [secondaryColor, setSecondaryColor] = useState("#FFFFFF")
@@ -214,7 +214,6 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Event Manager</h1>
-                <p className="text-sm text-white/90">Manage all aspects of your event in one place</p>
               </div>
             </div>
             <Button
