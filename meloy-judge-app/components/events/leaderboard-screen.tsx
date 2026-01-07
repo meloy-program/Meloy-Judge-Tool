@@ -298,12 +298,17 @@ export function LeaderboardScreen({ eventId, onBack, judgeName }: LeaderboardScr
             </div>
 
             <div className="flex items-center gap-3">
-              {judgeName && (
-                <Badge className="flex h-11 items-center gap-2 rounded-xl border border-white/40 bg-white/15 px-4 text-sm font-medium text-white backdrop-blur-md">
-                  <User className="h-4 w-4" />
-                  <span>{judgeName}</span>
-                </Badge>
-              )}
+              {/* User Profile */}
+              <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white leading-tight">{judgeName || "Judge"}</span>
+                  <span className="text-xs text-white/70">Judge</span>
+                </div>
+              </div>
+              
               {/* Toggle between modes */}
               <div className="flex items-center gap-3 rounded-xl border border-white/25 bg-white/15 px-4 py-3 backdrop-blur-md shadow-lg">
                 <Label htmlFor="mode-toggle" className="text-sm font-medium text-white cursor-pointer">

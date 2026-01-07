@@ -10,6 +10,7 @@ import {
   Sparkles,
   Clock,
   UsersRound,
+  User,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -202,6 +203,17 @@ export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScree
               </div>
               <div>
                 <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Admin Control Center</h1>
+              </div>
+            </div>
+            
+            {/* User Profile */}
+            <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                <User className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-semibold text-white leading-tight">Prof. Michael Chen</span>
+                <span className="text-xs text-white/70">Admin</span>
               </div>
             </div>
           </div>

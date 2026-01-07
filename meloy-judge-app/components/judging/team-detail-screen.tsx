@@ -140,12 +140,17 @@ export function TeamDetailScreen({ teamId, onBack, judgeName }: TeamDetailScreen
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {judgeName && (
-                <Badge className="flex h-11 items-center gap-2 rounded-xl border border-white/40 bg-white/15 px-4 text-sm font-medium text-white backdrop-blur-md">
-                  <User className="h-4 w-4" />
-                  <span>{judgeName}</span>
-                </Badge>
-              )}
+              {/* User Profile */}
+              <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white leading-tight">{judgeName || "Judge"}</span>
+                  <span className="text-xs text-white/70">Admin</span>
+                </div>
+              </div>
+              
               <Badge className="flex flex-col items-start gap-2 rounded-full border border-white/40 bg-white/20 px-4 py-2 text-sm font-semibold text-white sm:flex-row sm:items-center sm:gap-4">
                 <span>Total Score {totalScore}/{maxTotalScore}</span>
                 <span className="text-xs font-semibold uppercase tracking-[0.24em] text-white/70">Team {teamId}</span>

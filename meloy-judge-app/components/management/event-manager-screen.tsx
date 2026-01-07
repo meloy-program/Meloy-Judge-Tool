@@ -29,6 +29,7 @@ import {
   UserPlus,
   AlertCircle,
   CheckCircle2,
+  User,
 } from "lucide-react"
 
 interface EventManagerScreenProps {
@@ -216,13 +217,27 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
                 <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Event Manager</h1>
               </div>
             </div>
-            <Button
-              onClick={handleSave}
-              className="h-11 rounded-xl bg-white px-5 lg:px-6 text-base font-semibold text-primary shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
-            >
-              <Save className="mr-2 h-5 w-5" />
-              Save Changes
-            </Button>
+            
+            <div className="flex items-center gap-3">
+              {/* User Profile */}
+              <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white leading-tight">Dr. Sarah Johnson</span>
+                  <span className="text-xs text-white/70">Admin</span>
+                </div>
+              </div>
+              
+              <Button
+                onClick={handleSave}
+                className="h-11 rounded-xl bg-white px-5 lg:px-6 text-base font-semibold text-primary shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl"
+              >
+                <Save className="mr-2 h-5 w-5" />
+                Save Changes
+              </Button>
+            </div>
           </div>
         </div>
       </header>

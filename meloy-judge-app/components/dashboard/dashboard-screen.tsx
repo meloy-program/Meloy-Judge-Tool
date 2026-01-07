@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import type { Screen } from "@/app/page"
-import { Calendar, MapPin, Users, Settings, Shield, ChevronRight } from "lucide-react"
+import { Calendar, MapPin, Users, Settings, Shield, ChevronRight, User } from "lucide-react"
 
 interface DashboardScreenProps {
   onSelectEvent: (eventId: string) => void
@@ -62,6 +62,17 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
               </div>
             </div>
             <div className="flex items-center gap-3">
+              {/* User Profile */}
+              <div className="flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white leading-tight">Dr. Sarah Johnson</span>
+                  <span className="text-xs text-white/70">Judge</span>
+                </div>
+              </div>
+
               {isAdmin && (
                 <Button
                   variant="secondary"

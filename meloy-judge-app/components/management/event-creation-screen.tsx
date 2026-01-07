@@ -22,6 +22,7 @@ import {
   Sparkles,
   Save,
   Building2,
+  User,
 } from "lucide-react"
 
 interface EventCreationScreenProps {
@@ -185,10 +186,24 @@ export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScre
                 <p className="text-sm text-white/85">Configure the foundation for your next judging cohort.</p>
               </div>
             </div>
-            <Badge variant="secondary" className="hidden items-center gap-2 rounded-full border border-white/30 bg-white/15 px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white sm:flex">
-              <Sparkles className="h-3.5 w-3.5" />
-              Draft Mode
-            </Badge>
+            
+            <div className="flex items-center gap-3">
+              {/* User Profile */}
+              <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white leading-tight">Prof. Michael Chen</span>
+                  <span className="text-xs text-white/70">Admin</span>
+                </div>
+              </div>
+              
+              <Badge variant="secondary" className="hidden items-center gap-2 rounded-full border border-white/30 bg-white/15 px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white sm:flex">
+                <Sparkles className="h-3.5 w-3.5" />
+                Draft Mode
+              </Badge>
+            </div>
           </div>
         </div>
       </header>

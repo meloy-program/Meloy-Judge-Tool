@@ -72,10 +72,24 @@ export function SettingsScreen({ onBack, onLogout }: SettingsScreenProps) {
                 <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Settings Hub</h1>
               </div>
             </div>
-            <Button onClick={onLogout} className="h-11 rounded-xl bg-white px-5 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95">
-              <LogOut className="mr-2 h-4 w-4" />
-              Logout
-            </Button>
+            
+            <div className="flex items-center gap-3">
+              {/* User Profile */}
+              <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-white leading-tight">{name}</span>
+                  <span className="text-xs text-white/70">Admin</span>
+                </div>
+              </div>
+              
+              <Button onClick={onLogout} className="h-11 rounded-xl bg-white px-5 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/20 bg-white/10 px-6 py-4 text-white/90">
