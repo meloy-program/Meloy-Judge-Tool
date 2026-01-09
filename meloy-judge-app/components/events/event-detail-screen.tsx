@@ -19,14 +19,14 @@ interface EventDetailScreenProps {
   judgeName: string | null
 }
 
-const mockTeams = [
+// Mock data for Aggies Invent (teams)
+const mockTeamsAggiesInvent = [
   {
     id: "1",
     name: "Team Alpha",
     projectTitle: "Smart Campus Navigation System",
     members: ["John Doe", "Jane Smith", "Bob Johnson"],
     status: "not-graded",
-    tableNumber: "A-12",
   },
   {
     id: "2",
@@ -34,7 +34,6 @@ const mockTeams = [
     projectTitle: "Sustainable Energy Monitor",
     members: ["Alice Williams", "Charlie Brown", "Diana Prince"],
     status: "graded",
-    tableNumber: "B-05",
     score: 87,
   },
   {
@@ -43,7 +42,6 @@ const mockTeams = [
     projectTitle: "AI-Powered Study Assistant",
     members: ["Eve Davis", "Frank Miller", "Grace Lee"],
     status: "in-progress",
-    tableNumber: "C-18",
   },
   {
     id: "4",
@@ -51,7 +49,6 @@ const mockTeams = [
     projectTitle: "Campus Safety Alert System",
     members: ["Henry Wilson", "Ivy Chen", "Jack Taylor"],
     status: "not-graded",
-    tableNumber: "A-07",
   },
   {
     id: "5",
@@ -59,26 +56,81 @@ const mockTeams = [
     projectTitle: "Food Waste Reduction Platform",
     members: ["Kate Anderson", "Leo Martinez", "Maya Patel"],
     status: "graded",
-    tableNumber: "B-14",
     score: 92,
   },
 ]
 
+// Mock data for PWS (individual students)
+const mockStudentsPWS = [
+  {
+    id: "1",
+    name: "Sarah Johnson",
+    projectTitle: "Community Water Purification Initiative",
+    members: ["Sarah Johnson"], // Single member for consistency
+    status: "not-graded",
+  },
+  {
+    id: "2",
+    name: "Marcus Chen",
+    projectTitle: "Affordable Healthcare Access Platform",
+    members: ["Marcus Chen"],
+    status: "graded",
+    score: 91,
+  },
+  {
+    id: "3",
+    name: "Emily Rodriguez",
+    projectTitle: "Rural Education Technology Bridge",
+    members: ["Emily Rodriguez"],
+    status: "in-progress",
+  },
+  {
+    id: "4",
+    name: "David Thompson",
+    projectTitle: "Sustainable Agriculture Solutions",
+    members: ["David Thompson"],
+    status: "not-graded",
+  },
+  {
+    id: "5",
+    name: "Jessica Martinez",
+    projectTitle: "Mental Health Support Network",
+    members: ["Jessica Martinez"],
+    status: "graded",
+    score: 88,
+  },
+]
+
 export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, onManageEvent, onOpenModerator, isAdmin, judgeName }: EventDetailScreenProps) {
+  // small display mapping for event & sponsor logos (replace with real data retrieval later)
+  // show white version of event logos via CSS filter for high contrast in header
+  const eventLogoSrc = eventId === "3" ? "/pws.png" : "/aggiesinvent.png"
+  const isPWSEvent = eventId === "3" // PWS detection - event ID 3 is PWS, 1 and 2 are Aggies Invent
+  const participantLabel = isPWSEvent ? "Student" : "Team"
+  const participantsLabel = isPWSEvent ? "Students" : "Teams"
+  
+  // Use appropriate mock data based on event type
+  const mockTeams = isPWSEvent ? mockStudentsPWS : mockTeamsAggiesInvent
+  
   const gradedCount = mockTeams.filter((t) => t.status === "graded").length
   const totalCount = mockTeams.length
   const inProgressCount = mockTeams.filter((t) => t.status === "in-progress").length
   const notGradedCount = totalCount - gradedCount - inProgressCount
   const completionPercent = Math.round((gradedCount / totalCount) * 100)
-
-  // small display mapping for event & sponsor logos (replace with real data retrieval later)
-  // show white version of event logos via CSS filter for high contrast in header
-  const eventLogoSrc = eventId === "1" ? "/aggiesinvent.png" : "/pws.png"
-  const sponsor = { 
-    name: "ExxonMobil", 
-    logo: "/ExxonLogo.png",
-    color: "#500000" // Texas A&M maroon - replace with user-chosen sponsor color from event settings
-  }
+  // Sponsor data based on event type
+  const sponsor = isPWSEvent
+    ? { 
+        name: "Meloy Program", 
+        logo: "/TAMUlogo.png",
+        primaryColor: "#500000",
+        secondaryColor: "#3d0000"
+      }
+    : { 
+        name: "ExxonMobil", 
+        logo: "/ExxonLogo.png",
+        primaryColor: "#b91c1c",
+        secondaryColor: "#7f1d1d"
+      }
 
   const statusCopy: Record<typeof mockTeams[number]["status"], { label: string; tone: string }> = {
     graded: { label: "Graded", tone: "text-emerald-600" },
@@ -157,8 +209,13 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
   <main className="relative mx-auto max-w-7xl px-6 py-5 lg:py-6">
         {/* Unified Event Info Banner - sponsor and event details in one cohesive card */}
   <div className="relative mb-6 overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
-          {/* Inner container with red to dark red gradient - smaller radius to fit inside border */}
-          <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
+          {/* Inner container with sponsor gradient - smaller radius to fit inside border */}
+          <div 
+            className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6"
+            style={{
+              background: `linear-gradient(to bottom, ${sponsor.primaryColor}, ${sponsor.secondaryColor})`
+            }}
+          >
             {/* Very subtle texture overlay */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
             
@@ -172,7 +229,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
                   {/* Inner glow on hover */}
                   <div 
                     className="absolute inset-0 rounded-2xl opacity-0 transition-opacity group-hover:opacity-100"
-                    style={{ backgroundColor: `${sponsor.color}10` }}
+                    style={{ backgroundColor: `${sponsor.primaryColor}10` }}
                   />
                   <Image
                     src={sponsor.logo}
@@ -236,7 +293,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
                 <CheckCircle2 className="h-5 w-5 text-emerald-500" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">Teams graded</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-500">{participantsLabel} graded</p>
                 <p className="mt-0.5 text-2xl font-semibold text-slate-900">{gradedCount}</p>
               </div>
             </div>
@@ -272,7 +329,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
         <div className="mt-10 space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h2 className="text-3xl font-semibold text-slate-900">Team roster</h2>
+              <h2 className="text-3xl font-semibold text-slate-900">{participantLabel} roster</h2>
               <p className="text-sm text-slate-500">
                 Tracking {gradedCount} graded, {inProgressCount} in progress, {notGradedCount} awaiting review
               </p>
@@ -296,16 +353,11 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
               >
                 <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-rose-400 to-orange-300 opacity-70" />
                 <CardHeader className="relative flex flex-col gap-3 p-6 pb-4">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div>
-                      <CardTitle className="text-2xl font-semibold text-slate-900 transition-colors group-hover:text-primary">
-                        {team.name}
-                      </CardTitle>
-                      <CardDescription className="mt-2 text-base text-slate-600">{team.projectTitle}</CardDescription>
-                    </div>
-                    <Badge variant="outline" className="rounded-full border-primary/30 px-4 py-1 text-sm font-semibold text-primary">
-                      Table {team.tableNumber}
-                    </Badge>
+                  <div>
+                    <CardTitle className="text-2xl font-semibold text-slate-900 transition-colors group-hover:text-primary">
+                      {team.name}
+                    </CardTitle>
+                    <CardDescription className="mt-2 text-base text-slate-600">{team.projectTitle}</CardDescription>
                   </div>
                   <div className="flex flex-wrap items-center gap-3">
                     <Badge
@@ -327,14 +379,16 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
                     ) : null}
                   </div>
                 </CardHeader>
-                <CardContent className="px-6 pb-6">
-                  <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 px-4 py-3 text-sm text-slate-600">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                      <Users className="h-5 w-5 text-primary" />
-                    </span>
-                    <span className="font-medium text-slate-700">{team.members.join(", ")}</span>
-                  </div>
-                </CardContent>
+                {!isPWSEvent && (
+                  <CardContent className="px-6 pb-6">
+                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200/70 bg-slate-50/70 px-4 py-3 text-sm text-slate-600">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                        <Users className="h-5 w-5 text-primary" />
+                      </span>
+                      <span className="font-medium text-slate-700">{team.members.join(", ")}</span>
+                    </div>
+                  </CardContent>
+                )}
               </Card>
             ))}
           </div>

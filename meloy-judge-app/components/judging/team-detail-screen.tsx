@@ -21,7 +21,6 @@ const mockTeam = {
   name: "Team Alpha",
   projectTitle: "Smart Campus Navigation System",
   members: ["John Doe", "Jane Smith", "Bob Johnson"],
-  tableNumber: "A-12",
   description:
     "An innovative mobile application that helps students navigate the Texas A&M campus using AR technology and real-time crowd data to find the fastest routes to classes.",
 }
@@ -136,7 +135,6 @@ export function TeamDetailScreen({ teamId, onBack, judgeName }: TeamDetailScreen
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">Team review</p>
                 <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">{mockTeam.name}</h1>
-                <p className="text-sm text-white/80">Table {mockTeam.tableNumber}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

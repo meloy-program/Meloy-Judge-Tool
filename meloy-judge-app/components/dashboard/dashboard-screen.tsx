@@ -108,7 +108,14 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
               style={{ animationDelay: `${index * 100}ms` }}
             >
               {/* Sponsor gradient section at top */}
-              <div className="relative h-32 bg-linear-to-b from-red-600 to-red-950 overflow-hidden rounded-t-[28px]">
+              <div 
+                className="relative h-32 overflow-hidden rounded-t-[28px]"
+                style={{
+                  background: event.type === "problems-worth-solving"
+                    ? "linear-gradient(to bottom, #500000, #3d0000)"
+                    : "linear-gradient(to bottom, #b91c1c, #7f1d1d)"
+                }}
+              >
                 {/* Subtle texture overlay */}
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
                 
@@ -133,8 +140,8 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
                 {/* White glass sponsor container - left side */}
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-xl bg-white/70 backdrop-blur-xl border-2 border-white/80 shadow-xl px-4 py-3">
                   <Image
-                    src="/ExxonLogo.png"
-                    alt="ExxonMobil"
+                    src={event.type === "problems-worth-solving" ? "/TAMUlogo.png" : "/ExxonLogo.png"}
+                    alt={event.type === "problems-worth-solving" ? "Texas A&M University" : "ExxonMobil"}
                     width={80}
                     height={40}
                     className="h-10 w-auto max-w-[120px] object-contain"

@@ -103,7 +103,6 @@ const mockEventInsights: EventInsight[] = [
 interface TeamBreakdown {
   teamName: string
   projectTitle: string
-  tableNumber: string
   judges: string[]
   scores: {
     innovation: number
@@ -121,7 +120,6 @@ const mockTeamBreakdowns: Record<string, TeamBreakdown[]> = {
     {
       teamName: "Team Phoenix",
       projectTitle: "Smart Campus Navigation System",
-      tableNumber: "A-12",
       judges: ["Dr. Sarah Johnson", "Prof. Michael Chen"],
       scores: { innovation: 92, feasibility: 88, impact: 90, presentation: 95 },
       totalScore: 91.25,
@@ -131,7 +129,6 @@ const mockTeamBreakdowns: Record<string, TeamBreakdown[]> = {
     {
       teamName: "Team Nova",
       projectTitle: "Sustainable Energy Monitor",
-      tableNumber: "B-05",
       judges: ["Dr. Emily Rodriguez", "Prof. John Davis"],
       scores: { innovation: 88, feasibility: 90, impact: 85, presentation: 87 },
       totalScore: 87.5,
@@ -141,7 +138,6 @@ const mockTeamBreakdowns: Record<string, TeamBreakdown[]> = {
     {
       teamName: "Team Aurora",
       projectTitle: "AI Study Assistant",
-      tableNumber: "C-18",
       judges: ["Dr. Sarah Johnson", "Dr. Emily Rodriguez"],
       scores: { innovation: 85, feasibility: 82, impact: 88, presentation: 84 },
       totalScore: 84.75,
@@ -166,7 +162,6 @@ export function InsightsScreen({ onBack }: InsightsScreenProps) {
       "Rank",
       "Team Name",
       "Project Title",
-      "Table Number",
       "Judges",
       "Innovation Score",
       "Feasibility Score",
@@ -182,7 +177,6 @@ export function InsightsScreen({ onBack }: InsightsScreenProps) {
           team.rank,
           `"${team.teamName}"`,
           `"${team.projectTitle}"`,
-          team.tableNumber,
           `"${team.judges.join("; ")}"`,
           team.scores.innovation,
           team.scores.feasibility,

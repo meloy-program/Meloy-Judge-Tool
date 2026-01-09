@@ -40,7 +40,6 @@ interface Team {
   id: string
   name: string
   projectTitle: string
-  tableNumber: string
   status: TeamStatus
   order: number
   scores: TeamScore[]
@@ -58,7 +57,6 @@ const mockTeams: Team[] = [
     id: "1",
     name: "Team Alpha",
     projectTitle: "Smart Campus Navigation",
-    tableNumber: "A-12",
     status: "completed",
     order: 1,
     scores: [
@@ -72,7 +70,6 @@ const mockTeams: Team[] = [
     id: "2",
     name: "Team Beta",
     projectTitle: "Sustainable Energy Monitor",
-    tableNumber: "B-05",
     status: "active",
     order: 2,
     scores: [
@@ -86,7 +83,6 @@ const mockTeams: Team[] = [
     id: "3",
     name: "Team Gamma",
     projectTitle: "AI Study Assistant",
-    tableNumber: "C-18",
     status: "waiting",
     order: 3,
     scores: [
@@ -100,7 +96,6 @@ const mockTeams: Team[] = [
     id: "4",
     name: "Team Delta",
     projectTitle: "Campus Safety Alerts",
-    tableNumber: "D-21",
     status: "waiting",
     order: 4,
     scores: [
@@ -114,7 +109,6 @@ const mockTeams: Team[] = [
     id: "5",
     name: "Team Epsilon",
     projectTitle: "Food Waste Platform",
-    tableNumber: "E-08",
     status: "waiting",
     order: 5,
     scores: [
@@ -327,12 +321,7 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
                             <div className="flex-1 min-w-0">
                               {/* Team info */}
                               <div className="mb-3">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <h4 className="font-bold text-lg text-slate-900">{team.name}</h4>
-                                  <Badge className="text-xs font-semibold bg-primary/10 text-primary border-primary/20">
-                                    {team.tableNumber}
-                                  </Badge>
-                                </div>
+                                <h4 className="font-bold text-lg text-slate-900 mb-1">{team.name}</h4>
                                 <p className="text-sm text-slate-600 font-medium">{team.projectTitle}</p>
                               </div>
                               
@@ -446,10 +435,7 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
                                     >
                                       {team.order}
                                     </Badge>
-                                    <div>
-                                      <p className="font-medium text-slate-900 text-sm">{team.name}</p>
-                                      <p className="text-xs text-slate-500">{team.tableNumber}</p>
-                                    </div>
+                                    <p className="font-medium text-slate-900 text-sm">{team.name}</p>
                                   </div>
                                 </td>
                                 {team.scores.map((score) => (

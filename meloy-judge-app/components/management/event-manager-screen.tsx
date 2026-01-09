@@ -57,7 +57,6 @@ interface Team {
   id: string
   name: string
   members: TeamMember[]
-  tableNumber: string
   judgeAssigned: string | null
 }
 
@@ -96,7 +95,6 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
         { id: "1", name: "John Doe", email: "john@tamu.edu" },
         { id: "2", name: "Jane Smith", email: "jane@tamu.edu" },
       ],
-      tableNumber: "A-12",
       judgeAssigned: "1",
     },
     {
@@ -106,16 +104,23 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
         { id: "3", name: "Bob Wilson", email: "bob@tamu.edu" },
         { id: "4", name: "Alice Brown", email: "alice@tamu.edu" },
       ],
-      tableNumber: "A-13",
       judgeAssigned: "1",
     },
   ])
   const [newTeamName, setNewTeamName] = useState("")
-  const [newTableNumber, setNewTableNumber] = useState("")
   const [newMemberName, setNewMemberName] = useState("")
   const [newMemberEmail, setNewMemberEmail] = useState("")
   const [tempMembers, setTempMembers] = useState<TeamMember[]>([])
   const [editingTeamId, setEditingTeamId] = useState<string | null>(null)
+
+  // PWS Student State
+  const [newStudentName, setNewStudentName] = useState("")
+  const [newStudentEmail, setNewStudentEmail] = useState("")
+
+  // Determine if event is PWS (individual students) or team-based
+  const isPWSEvent = eventType === "problems-worth-solving"
+  const participantLabel = isPWSEvent ? "Student" : "Team"
+  const participantsLabel = isPWSEvent ? "Students" : "Teams"
 
   const eventTypes = [
     { value: "aggies-invent", label: "Aggies Invent", logo: "/aggiesinvent.png" },
@@ -167,13 +172,28 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
           id: Date.now().toString(),
           name: newTeamName,
           members: tempMembers,
-          tableNumber: newTableNumber,
           judgeAssigned: null,
         },
       ])
       setNewTeamName("")
-      setNewTableNumber("")
       setTempMembers([])
+    }
+  }
+
+  // For PWS: Add individual student (creates a "team" with 1 member)
+  const addStudent = () => {
+    if (newStudentName && newStudentEmail) {
+      setTeams([
+        ...teams,
+        {
+          id: Date.now().toString(),
+          name: newStudentName,
+          members: [{ id: Date.now().toString(), name: newStudentName, email: newStudentEmail }],
+          judgeAssigned: null,
+        },
+      ])
+      setNewStudentName("")
+      setNewStudentEmail("")
     }
   }
 
@@ -674,45 +694,76 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
               </div>
             </TabsContent>
 
-            {/* Teams Tab */}
+            {/* Teams/Students Tab */}
             <TabsContent value="teams" className="space-y-6">
               <Card className="overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/90 shadow-xl backdrop-blur-sm">
                 <CardHeader className="border-b border-slate-100 bg-linear-to-br from-slate-50 to-white p-8">
                   <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-slate-900">
-                    <Plus className="h-6 w-6 text-primary" />
-                    Add New Team
+                    {isPWSEvent ? <User className="h-6 w-6 text-primary" /> : <Award className="h-6 w-6 text-primary" />}
+                    Add New {participantLabel}
                   </CardTitle>
-                  <CardDescription className="text-base text-slate-600">Register teams competing in this event</CardDescription>
+                  <CardDescription className="text-base text-slate-600">
+                    {isPWSEvent ? "Register an individual student for this event." : "Create a new team for this event."}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6 p-8">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="team-name" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
-                        Team Name
-                      </Label>
-                      <Input
-                        id="team-name"
-                        value={newTeamName}
-                        onChange={(e) => setNewTeamName(e.target.value)}
-                        placeholder="e.g., Team Phoenix"
-                        className="h-12 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="table-number" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
-                        Table Number
-                      </Label>
-                      <Input
-                        id="table-number"
-                        value={newTableNumber}
-                        onChange={(e) => setNewTableNumber(e.target.value)}
-                        placeholder="e.g., A-15"
-                        className="h-12 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
-                      />
-                    </div>
-                  </div>
+                  {isPWSEvent ? (
+                    /* PWS Student Form */
+                    <>
+                      <div className="grid gap-6 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="student-name" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
+                            Student Name
+                          </Label>
+                          <Input
+                            id="student-name"
+                            value={newStudentName}
+                            onChange={(e) => setNewStudentName(e.target.value)}
+                            placeholder="e.g., John Smith"
+                            className="h-12 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="student-email" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
+                            Student Email
+                          </Label>
+                          <Input
+                            id="student-email"
+                            value={newStudentEmail}
+                            onChange={(e) => setNewStudentEmail(e.target.value)}
+                            placeholder="e.g., student@tamu.edu"
+                            type="email"
+                            className="h-12 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
+                          />
+                        </div>
+                      </div>
 
-                  <div className="space-y-4">
+                      <Button
+                        onClick={addStudent}
+                        disabled={!newStudentName || !newStudentEmail}
+                        className="h-12 w-full rounded-xl bg-primary text-base font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 md:w-auto md:px-8"
+                      >
+                        <Plus className="mr-2 h-5 w-5" />
+                        Add Student
+                      </Button>
+                    </>
+                  ) : (
+                    /* Team Form */
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="team-name" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
+                          Team Name
+                        </Label>
+                        <Input
+                          id="team-name"
+                          value={newTeamName}
+                          onChange={(e) => setNewTeamName(e.target.value)}
+                          placeholder="e.g., Team Phoenix"
+                          className="h-12 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
+                        />
+                      </div>
+
+                      <div className="space-y-4">
                     <Label className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">Team Members</Label>
                     <div className="grid gap-4 md:grid-cols-2">
                       <Input
@@ -763,20 +814,22 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
                     )}
                   </div>
 
-                  <Button
-                    onClick={addTeam}
-                    disabled={!newTeamName || tempMembers.length === 0}
-                    className="h-12 w-full rounded-xl bg-primary text-base font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 md:w-auto md:px-8"
-                  >
-                    <Plus className="mr-2 h-5 w-5" />
-                    Add Team
-                  </Button>
+                      <Button
+                        onClick={addTeam}
+                        disabled={!newTeamName || tempMembers.length === 0}
+                        className="h-12 w-full rounded-xl bg-primary text-base font-semibold shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 md:w-auto md:px-8"
+                      >
+                        <Plus className="mr-2 h-5 w-5" />
+                        Add Team
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
               <div className="space-y-4">
                 <h3 className="text-2xl font-semibold text-slate-800">
-                  Registered Teams <span className="text-primary">({teams.length})</span>
+                  Registered {participantsLabel} <span className="text-primary">({teams.length})</span>
                 </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   {teams.map((team) => (
@@ -787,26 +840,27 @@ export function EventManagerScreen({ eventId, onBack, onSave }: EventManagerScre
                       <CardHeader className="p-6">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3">
-                              <CardTitle className="text-xl font-semibold text-slate-800 transition-colors group-hover:text-primary">
-                                {team.name}
-                              </CardTitle>
-                              {team.tableNumber && (
-                                <Badge className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
-                                  {team.tableNumber}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="mt-3 space-y-2">
-                              <p className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Members</p>
-                              <div className="space-y-1">
-                                {team.members.map((member) => (
-                                  <p key={member.id} className="text-sm text-slate-600">
-                                    • {member.name}
-                                  </p>
-                                ))}
+                            <CardTitle className="text-xl font-semibold text-slate-800 transition-colors group-hover:text-primary">
+                              {team.name}
+                            </CardTitle>
+                            {!isPWSEvent && (
+                              <div className="mt-3 space-y-2">
+                                <p className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Members</p>
+                                <div className="space-y-1">
+                                  {team.members.map((member) => (
+                                    <p key={member.id} className="text-sm text-slate-600">
+                                      • {member.name}
+                                    </p>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
+                            )}
+                            {isPWSEvent && team.members.length > 0 && (
+                              <div className="mt-3 space-y-2">
+                                <p className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Email</p>
+                                <p className="text-sm text-slate-600">{team.members[0].email}</p>
+                              </div>
+                            )}
                             <div className="mt-3">
                               <p className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Assigned Judge</p>
                               <p className="mt-1 text-sm text-slate-700">{getJudgeName(team.judgeAssigned)}</p>
