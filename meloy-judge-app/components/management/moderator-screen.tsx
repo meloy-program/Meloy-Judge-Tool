@@ -151,7 +151,7 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-linear-to-br from-slate-50 via-white to-primary/5">
-      <div className="w-full bg-linear-to-b from-primary to-[#3d0000]">
+      <div className="w-full z-30 relative bg-linear-to-b from-primary to-[#3d0000]">
         <div className="mx-auto max-w-7xl px-6 py-4 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-4 lg:gap-6">
             <div className="flex items-center gap-4 lg:gap-5">
