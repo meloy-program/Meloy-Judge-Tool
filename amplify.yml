@@ -8,14 +8,13 @@ frontend:
         - pnpm install --frozen-lockfile
     build:
       commands:
-        - cd meloy-judge-app
         - pnpm run build
   artifacts:
-    baseDirectory: meloy-judge-app/.next
+    baseDirectory: .next
     files:
       - '**/*'
   cache:
     paths:
-      - meloy-judge-app/node_modules/**/*
-      - meloy-judge-app/.next/cache/**/*
+      - node_modules/**/*
+      - .next/cache/**/*
       - ~/.pnpm-store/**/*
