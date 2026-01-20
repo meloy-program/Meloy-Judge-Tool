@@ -15,6 +15,12 @@ Globals:
         NODE_ENV: production
     Architectures:
       - x86_64
+    VpcConfig:
+      SecurityGroupIds:
+        - sg-079fd1a5f67dd2d75
+      SubnetIds:
+        - subnet-037afc317860648be  # us-east-1a (private)
+        - subnet-059c9242e7c6e9a0a  # us-east-1b (private)
 
 Parameters:
   RDSSecretArn:
@@ -77,6 +83,7 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
       Policies:
         - PolicyName: SecretsManagerAccess
           PolicyDocument:
@@ -94,8 +101,8 @@ Resources:
   CasCallbackFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
-      Handler: handlers/auth/cas-callback.handler
+      CodeUri: ./
+      Handler: dist/handlers/auth/cas-callback.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         CasCallback:
@@ -106,12 +113,14 @@ Resources:
             Method: GET
             Auth:
               Authorizer: NONE
+    Metadata:
+      BuildMethod: nodejs18.x
 
   GetMeFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
-      Handler: handlers/auth/get-me.handler
+      CodeUri: ./
+      Handler: dist/handlers/auth/get-me.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         GetMe:
@@ -120,12 +129,16 @@ Resources:
             ApiId: !Ref MeloyJudgeApi
             Path: /auth/me
             Method: GET
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      BuildMethod: nodejs18.x
 
   LogoutFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
-      Handler: handlers/auth/logout.handler
+      CodeUri: ./
+      Handler: dist/handlers/auth/logout.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         Logout:
@@ -134,14 +147,18 @@ Resources:
             ApiId: !Ref MeloyJudgeApi
             Path: /auth/logout
             Method: POST
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      BuildMethod: nodejs18.x
 
   # ==================== EVENT ENDPOINTS ====================
 
   ListEventsFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
-      Handler: handlers/events/list.handler
+      CodeUri: ./
+      Handler: dist/handlers/events/list.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         ListEvents:
@@ -150,12 +167,16 @@ Resources:
             ApiId: !Ref MeloyJudgeApi
             Path: /events
             Method: GET
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      BuildMethod: nodejs18.x
 
   GetEventFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: dist/
-      Handler: handlers/events/detail.handler
+      CodeUri: ./
+      Handler: dist/handlers/events/detail.handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         GetEvent:
@@ -164,6 +185,10 @@ Resources:
             ApiId: !Ref MeloyJudgeApi
             Path: /events/{id}
             Method: GET
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      BuildMethod: nodejs18.x
 
 Outputs:
   MeloyJudgeApiUrl:
