@@ -1,0 +1,14 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "meloy-judge-api"
+resolve_s3 = true
+s3_prefix = "meloy-judge-api"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = true
+parameter_overrides = "RDSSecretArn=\"arn:aws:secretsmanager:us-east-1:271669412379:secret:meloyjudge/rds/credentials-X5m8P7\" JWTSecretArn=\"arn:aws:secretsmanager:us-east-1:271669412379:secret:meloyjudge/jwt/secret-0uBnoy\" CASServiceUrl=\"https://your-app.amplifyapp.com/auth/callback\""
+image_repositories = []
+
+[default.global.parameters]
+region = "us-east-1"

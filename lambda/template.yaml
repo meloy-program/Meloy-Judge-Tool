@@ -20,12 +20,12 @@ Parameters:
   RDSSecretArn:
     Type: String
     Description: ARN of the Secrets Manager secret containing RDS credentials
-    Default: arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:meloyjudge/rds/credentials
+    Default: arn:aws:secretsmanager:us-east-1:271669412379:secret:meloyjudge/rds/credentials-X5m8P7
 
   JWTSecretArn:
     Type: String
     Description: ARN of the Secrets Manager secret containing JWT signing key
-    Default: arn:aws:secretsmanager:us-east-1:ACCOUNT_ID:secret:meloyjudge/jwt/secret
+    Default: arn:aws:secretsmanager:us-east-1:271669412379:secret:meloyjudge/jwt/secret-0uBnoy
 
   CASServiceUrl:
     Type: String
