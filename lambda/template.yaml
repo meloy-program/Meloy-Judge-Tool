@@ -116,6 +116,45 @@ Resources:
     Metadata:
       BuildMethod: nodejs18.x
 
+  InitSchemaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: dist/handlers/admin/init-schema.handler
+      Description: Initialize database schema (admin only)
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 60
+      Events:
+        InitSchema:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MeloyJudgeApi
+            Path: /admin/init-schema
+            Method: POST
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      BuildMethod: nodejs18.x
+
+  SeedDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ./
+      Handler: dist/handlers/admin/seed-data.handler
+      Description: Seed database with test data (admin only)
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        SeedData:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MeloyJudgeApi
+            Path: /admin/seed-data
+            Method: POST
+            Auth:
+              Authorizer: NONE
+    Metadata:
+      BuildMethod: nodejs18.x
+
   GetMeFunction:
     Type: AWS::Serverless::Function
     Properties:

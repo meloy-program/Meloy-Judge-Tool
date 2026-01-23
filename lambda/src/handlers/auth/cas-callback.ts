@@ -105,38 +105,49 @@ export async function handler(
 
     // Look up user in database
     const user = await userQueries.findByNetId(netId);
-    if (!user) {
-      throw new ForbiddenError('User not found. Please contact administrator.');
+    
+    // Auto-create user if doesn't exist
+    let finalUser = user;
+    if (!finalUser) {
+      finalUser = await userQueries.createUser({
+        netId,
+        email: `${netId}@tamu.edu`,
+        firstName: netId,
+        lastName: '',
+        role: 'participant',
+        isActive: true,
+      });
     }
 
-    if (!user.is_active) {
+    if (!finalUser.is_active) {
       throw new ForbiddenError('User account is inactive');
     }
 
     // Update last login timestamp
-    await userQueries.updateLastLogin(user.id);
+    await userQueries.updateLastLogin(finalUser.id);
 
     // Generate JWT token
     const token = await signJwt({
-      userId: user.id,
-      netId: user.netid || netId,
-      email: user.email,
-      role: user.role,
+      userId: finalUser.id,
+      netId: finalUser.netid,
+      email: finalUser.email,
+      role: finalUser.role,
     });
 
-    console.log('JWT token generated for user:', user.id);
+    console.log('JWT token generated for user:', finalUser.id);
 
     // Return token and user info
     return successResponse({
       token,
       user: {
-        id: user.id,
-        netId: user.netid || netId,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        isActive: user.is_active,
-        lastLogin: user.last_login,
+        id: finalUser.id,
+        netId: finalUser.netid,
+        email: finalUser.email,
+        firstName: finalUser.first_name,
+        lastName: finalUser.last_name,
+        role: finalUser.role,
+        isActive: finalUser.is_active,
+        lastLogin: finalUser.last_login,
       },
     });
   } catch (error) {

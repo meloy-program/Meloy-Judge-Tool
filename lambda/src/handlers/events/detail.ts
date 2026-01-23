@@ -33,12 +33,11 @@ export async function handler(
         json_build_object(
           'name', s.name,
           'logo_url', s.logo_url,
-          'primary_color', s.primary_color,
-          'secondary_color', s.secondary_color,
-          'text_color', s.text_color
+          'website_url', s.website_url,
+          'tier', s.tier
         ) as sponsor
       FROM events e
-      LEFT JOIN sponsors s ON s.event_id = e.id
+      LEFT JOIN sponsors s ON e.sponsor_id = s.id
       WHERE e.id = $1`,
       [eventId]
     );
@@ -52,26 +51,15 @@ export async function handler(
       `SELECT 
         t.id,
         t.name,
-        t.project_title,
         t.description,
-        t.presentation_order,
         t.status,
+        t.project_url,
         COUNT(tm.id) as member_count
       FROM teams t
       LEFT JOIN team_members tm ON tm.team_id = t.id
       WHERE t.event_id = $1
-      GROUP BY t.id
-      ORDER BY t.presentation_order ASC`,
-      [eventId]
-    );
-
-    // Fetch online judges count
-    const onlineJudges = await queryOne<{ count: string }>(
-      `SELECT COUNT(DISTINCT user_id) as count
-      FROM judge_sessions
-      WHERE event_id = $1
-        AND logged_out_at IS NULL
-        AND last_activity > NOW() - INTERVAL '15 minutes'`,
+      GROUP BY t.id, t.name, t.description, t.status, t.project_url
+      ORDER BY t.created_at ASC`,
       [eventId]
     );
 
@@ -82,9 +70,10 @@ export async function handler(
     }>(
       `SELECT 
         COUNT(*) as total_submissions,
-        COUNT(submitted_at) as completed_submissions
-      FROM score_submissions
-      WHERE event_id = $1`,
+        COUNT(CASE WHEN s.status = 'completed' THEN 1 END) as completed_submissions
+      FROM submissions s
+      JOIN teams t ON s.team_id = t.id
+      WHERE t.event_id = $1`,
       [eventId]
     );
 
@@ -95,29 +84,28 @@ export async function handler(
         id: eventData.id,
         name: eventData.name,
         eventType: eventData.event_type,
-        duration: eventData.duration,
         startDate: eventData.start_date,
         endDate: eventData.end_date,
         location: eventData.location,
         description: eventData.description,
         status: eventData.status,
-        judgingPhase: eventData.judging_phase,
-        currentActiveTeamId: eventData.current_active_team_id,
+        registrationDeadline: eventData.registration_deadline,
+        maxTeamSize: eventData.max_team_size,
+        minTeamSize: eventData.min_team_size,
+        maxTeams: eventData.max_teams,
         sponsor: eventData.sponsor,
         createdAt: eventData.created_at,
       },
       teams: teams.map(t => ({
         id: t.id,
         name: t.name,
-        projectTitle: t.project_title,
         description: t.description,
-        presentationOrder: t.presentation_order,
         status: t.status,
+        projectUrl: t.project_url,
         memberCount: parseInt(t.member_count, 10),
       })),
       stats: {
         totalTeams: teams.length,
-        judgesOnline: parseInt(onlineJudges?.count || '0', 10),
         totalSubmissions: parseInt(submissionStats?.total_submissions || '0', 10),
         completedSubmissions: parseInt(submissionStats?.completed_submissions || '0', 10),
       },

@@ -2,11 +2,11 @@
 
 export interface User {
   id: string;
-  netid?: string;
+  netid: string;
   email: string;
-  password_hash?: string;
-  name: string;
-  role: 'judge' | 'admin' | 'moderator';
+  first_name: string;
+  last_name: string;
+  role: 'participant' | 'judge' | 'moderator' | 'admin';
   is_active: boolean;
   last_login?: Date;
   created_at: Date;
@@ -16,16 +16,17 @@ export interface User {
 export interface Event {
   id: string;
   name: string;
-  event_type: 'aggies-invent' | 'problems-worth-solving';
-  duration?: string;
-  start_date?: Date;
-  end_date?: Date;
+  event_type: 'hackathon' | 'design_competition' | 'pitch_competition';
+  start_date: Date;
+  end_date: Date;
   location?: string;
   description?: string;
-  status: 'upcoming' | 'active' | 'completed';
-  judging_phase: 'not-started' | 'in-progress' | 'ended';
-  current_active_team_id?: string;
-  created_by?: string;
+  status: 'upcoming' | 'active' | 'completed' | 'cancelled';
+  registration_deadline?: Date;
+  max_team_size?: number;
+  min_team_size?: number;
+  max_teams?: number;
+  sponsor_id?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -34,10 +35,9 @@ export interface Team {
   id: string;
   event_id: string;
   name: string;
-  project_title?: string;
   description?: string;
-  presentation_order: number;
-  status: 'waiting' | 'active' | 'completed';
+  status: 'pending' | 'approved' | 'rejected';
+  project_url?: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -45,9 +45,9 @@ export interface Team {
 export interface TeamMember {
   id: string;
   team_id: string;
-  name: string;
-  email?: string;
-  created_at: Date;
+  user_id: string;
+  role: 'leader' | 'member';
+  joined_at: Date;
 }
 
 export interface RubricCriteria {
@@ -133,7 +133,7 @@ export interface JwtPayload {
   userId: string;
   netId: string;
   email: string;
-  role: 'judge' | 'admin' | 'moderator';
+  role: 'participant' | 'judge' | 'admin' | 'moderator';
   iat?: number;
   exp?: number;
 }

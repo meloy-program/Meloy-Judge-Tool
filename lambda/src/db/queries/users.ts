@@ -36,15 +36,16 @@ export async function updateLastLogin(userId: string): Promise<void> {
 export async function createUser(data: {
   netId: string;
   email: string;
-  name: string;
-  role: 'judge' | 'admin' | 'moderator';
+  firstName: string;
+  lastName: string;
+  role: 'participant' | 'judge' | 'moderator' | 'admin';
   isActive?: boolean;
 }): Promise<User> {
   const result = await queryOne<User>(
-    `INSERT INTO users (netid, email, name, role, is_active)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO users (netid, email, first_name, last_name, role, is_active)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING *`,
-    [data.netId, data.email, data.name, data.role, data.isActive ?? true]
+    [data.netId, data.email, data.firstName, data.lastName, data.role, data.isActive ?? true]
   );
   
   if (!result) {
@@ -98,15 +99,19 @@ export async function listUsers(filters: {
 
 export async function updateUser(
   userId: string,
-  updates: Partial<Pick<User, 'name' | 'email' | 'role' | 'is_active'>>
+  updates: Partial<Pick<User, 'first_name' | 'last_name' | 'email' | 'role' | 'is_active'>>
 ): Promise<User> {
   const fields: string[] = [];
   const params: any[] = [];
   let paramIndex = 1;
 
-  if (updates.name !== undefined) {
-    fields.push(`name = $${paramIndex++}`);
-    params.push(updates.name);
+  if (updates.first_name !== undefined) {
+    fields.push(`first_name = $${paramIndex++}`);
+    params.push(updates.first_name);
+  }
+  if (updates.last_name !== undefined) {
+    fields.push(`last_name = $${paramIndex++}`);
+    params.push(updates.last_name);
   }
   if (updates.email !== undefined) {
     fields.push(`email = $${paramIndex++}`);

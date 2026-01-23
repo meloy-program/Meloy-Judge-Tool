@@ -16,9 +16,8 @@ interface EventWithSponsor extends Event {
   sponsor?: {
     name: string;
     logo_url?: string;
-    primary_color: string;
-    secondary_color: string;
-    text_color: string;
+    website_url?: string;
+    tier?: string;
   };
 }
 
@@ -53,12 +52,11 @@ export async function handler(
         json_build_object(
           'name', s.name,
           'logo_url', s.logo_url,
-          'primary_color', s.primary_color,
-          'secondary_color', s.secondary_color,
-          'text_color', s.text_color
+          'website_url', s.website_url,
+          'tier', s.tier
         ) as sponsor
       FROM events e
-      LEFT JOIN sponsors s ON s.event_id = e.id
+      LEFT JOIN sponsors s ON e.sponsor_id = s.id
       WHERE ${conditions.join(' AND ')}
       ORDER BY e.start_date DESC NULLS LAST, e.created_at DESC`,
       params
@@ -71,14 +69,15 @@ export async function handler(
         id: e.id,
         name: e.name,
         eventType: e.event_type,
-        duration: e.duration,
         startDate: e.start_date,
         endDate: e.end_date,
         location: e.location,
         description: e.description,
         status: e.status,
-        judgingPhase: e.judging_phase,
-        currentActiveTeamId: e.current_active_team_id,
+        registrationDeadline: e.registration_deadline,
+        maxTeamSize: e.max_team_size,
+        minTeamSize: e.min_team_size,
+        maxTeams: e.max_teams,
         sponsor: e.sponsor,
         createdAt: e.created_at,
       })),
