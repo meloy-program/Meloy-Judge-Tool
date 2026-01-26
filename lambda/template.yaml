@@ -1,26 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
-Description: Meloy Judging Portal - Lambda API Backend
-
-Globals:
-  Function:
-    Timeout: 30
-    Runtime: nodejs18.x
-    MemorySize: 512
-    Environment:
-      Variables:
-        RDS_SECRET_ARN: !Ref RDSSecretArn
-        JWT_SECRET_ARN: !Ref JWTSecretArn
-        CAS_SERVICE_URL: !Ref CASServiceUrl
-        NODE_ENV: production
-    Architectures:
-      - x86_64
-    VpcConfig:
-      SecurityGroupIds:
-        - sg-079fd1a5f67dd2d75
-      SubnetIds:
-        - subnet-037afc317860648be  # us-east-1a (private)
-        - subnet-059c9242e7c6e9a0a  # us-east-1b (private)
+Description: Meloy Judging Portal - Express Monolith API
 
 Parameters:
   RDSSecretArn:
@@ -38,38 +18,28 @@ Parameters:
     Description: CAS callback service URL for TAMU authentication
     Default: https://your-app.amplifyapp.com/auth/callback
 
-Resources:
-  # HTTP API Gateway
-  MeloyJudgeApi:
-    Type: AWS::Serverless::HttpApi
-    Properties:
-      StageName: prod
-      CorsConfiguration:
-        AllowOrigins:
-          - 'https://your-app.amplifyapp.com'
-          - 'http://localhost:3000'
-        AllowMethods:
-          - GET
-          - POST
-          - PUT
-          - PATCH
-          - DELETE
-          - OPTIONS
-        AllowHeaders:
-          - Content-Type
-          - Authorization
-          - X-Requested-With
-        MaxAge: 300
-      Auth:
-        Authorizers:
-          JwtAuthorizer:
-            IdentitySource: $request.header.Authorization
-            JwtConfiguration:
-              issuer: meloy-judge-portal
-              audience:
-                - meloy-judge-api
-        DefaultAuthorizer: JwtAuthorizer
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: nodejs18.x
+    MemorySize: 512
+    Environment:
+      Variables:
+        RDS_SECRET_ARN: !Ref RDSSecretArn
+        JWT_SECRET_ARN: !Ref JWTSecretArn
+        CAS_SERVICE_URL: !Ref CASServiceUrl
+        NODE_ENV: production
+        DEV_MODE: 'true'  # ⚠️ Set to 'false' for production!
+    Architectures:
+      - x86_64
+    VpcConfig:
+      SecurityGroupIds:
+        - sg-079fd1a5f67dd2d75
+      SubnetIds:
+        - subnet-037afc317860648be  # us-east-1a (private)
+        - subnet-059c9242e7c6e9a0a  # us-east-1b (private)
 
+Resources:
   # Lambda Execution Role
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -96,684 +66,52 @@ Resources:
                   - !Ref RDSSecretArn
                   - !Ref JWTSecretArn
 
-  # ==================== AUTH ENDPOINTS ====================
+  # HTTP API Gateway
+  MeloyJudgeApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: prod
+      CorsConfiguration:
+        AllowOrigins:
+          - 'https://your-app.amplifyapp.com'
+          - 'http://localhost:3000'
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+          - X-Requested-With
+        MaxAge: 300
 
-  CasCallbackFunction:
+  # Single API Function with Express Routing
+  ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
+      FunctionName: meloy-judge-api
       CodeUri: ./
-      Handler: dist/handlers/auth/cas-callback.handler
+      Handler: dist/app.handler
+      Description: Main API function with Express routing for all endpoints
       Role: !GetAtt LambdaExecutionRole.Arn
       Events:
-        CasCallback:
+        # Catch-all route for Express to handle
+        ApiProxy:
           Type: HttpApi
           Properties:
             ApiId: !Ref MeloyJudgeApi
-            Path: /auth/cas-callback
+            Path: /{proxy+}
+            Method: ANY
+        # Health check endpoint
+        HealthCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref MeloyJudgeApi
+            Path: /health
             Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  InitSchemaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/admin/init-schema.handler
-      Description: Initialize database schema (admin only)
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Timeout: 60
-      Events:
-        InitSchema:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /admin/init-schema
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  SeedDataFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/admin/seed-data.handler
-      Description: Seed database with test data (admin only)
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        SeedData:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /admin/seed-data
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  GetMeFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/auth/get-me.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        GetMe:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /auth/me
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  LogoutFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/auth/logout.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        Logout:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /auth/logout
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  # ==================== EVENT ENDPOINTS ====================
-
-  ListEventsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/list.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        ListEvents:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  GetEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/detail.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        GetEvent:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{id}
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  # ==================== JUDGING WORKFLOW ENDPOINTS ====================
-
-  ListTeamsByEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/list-by-event.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        ListTeamsByEvent:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/teams
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  TeamDetailFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/detail.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        TeamDetail:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /teams/{teamId}
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  GetRubricFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/rubric/get.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        GetRubric:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /rubric
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  SubmitScoresFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/scores/submit.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        SubmitScores:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /scores
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  LeaderboardFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/leaderboard.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        Leaderboard:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/leaderboard
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  HeartbeatFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/judge/heartbeat.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        Heartbeat:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /judge/heartbeat
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  OnlineJudgesFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/judge/online-judges.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        OnlineJudges:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/judges/online
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  UpdateActiveTeamFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/update-active-team.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        UpdateActiveTeam:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/team-active
-            Method: PUT
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  UpdateJudgingPhaseFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/update-judging-phase.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        UpdateJudgingPhase:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/judging-phase
-            Method: PUT
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  ModeratorStatusFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/moderator-status.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        ModeratorStatus:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/moderator/status
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  # ==================== TEAM MANAGEMENT ENDPOINTS ====================
-
-  CreateTeamFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/create.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        CreateTeam:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/teams
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  UpdateTeamFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/update.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        UpdateTeam:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /teams/{teamId}
-            Method: PUT
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  DeleteTeamFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/delete.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        DeleteTeam:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /teams/{teamId}
-            Method: DELETE
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  AddTeamMemberFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/add-member.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        AddTeamMember:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /teams/{teamId}/members
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  RemoveTeamMemberFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/remove-member.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        RemoveTeamMember:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /teams/{teamId}/members/{memberId}
-            Method: DELETE
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  PendingTeamsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/teams/pending.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        PendingTeams:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/teams/pending
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  # ==================== JUDGE MANAGEMENT ENDPOINTS ====================
-
-  AssignJudgeFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/judge/assign.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        AssignJudge:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/judges
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  RemoveJudgeFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/judge/remove.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        RemoveJudge:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/judges/{judgeId}
-            Method: DELETE
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  ListJudgesFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/judge/list.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        ListJudges:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /judges
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  MyProgressFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/judge/my-progress.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        MyProgress:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/my-progress
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  AssignedJudgesFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/judge/assigned.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        AssignedJudges:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/judges/assigned
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  # ==================== ADMIN ENDPOINTS ====================
-
-  ListUsersFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/users/list.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        ListUsers:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /users
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  UpdateUserRoleFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/users/update-role.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        UpdateUserRole:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /users/{userId}/role
-            Method: PUT
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  EventInsightsFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/insights.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        EventInsights:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}/insights
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  ListActivityFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/activity/list.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        ListActivity:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /activity
-            Method: GET
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  CreateSponsorFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/sponsors/create.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        CreateSponsor:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /sponsors
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  UpdateSponsorFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/sponsors/update.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        UpdateSponsor:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /sponsors/{sponsorId}
-            Method: PUT
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  CreateEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/create.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        CreateEvent:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events
-            Method: POST
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  UpdateEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/update.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        UpdateEvent:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}
-            Method: PUT
-            Auth:
-              Authorizer: NONE
-    Metadata:
-      BuildMethod: nodejs18.x
-
-  DeleteEventFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: ./
-      Handler: dist/handlers/events/delete.handler
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Events:
-        DeleteEvent:
-          Type: HttpApi
-          Properties:
-            ApiId: !Ref MeloyJudgeApi
-            Path: /events/{eventId}
-            Method: DELETE
-            Auth:
-              Authorizer: NONE
     Metadata:
       BuildMethod: nodejs18.x
 
@@ -785,3 +123,11 @@ Outputs:
   MeloyJudgeApiId:
     Description: API Gateway ID
     Value: !Ref MeloyJudgeApi
+  
+  ApiFunctionName:
+    Description: Lambda function name
+    Value: !Ref ApiFunction
+  
+  ApiFunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt ApiFunction.Arn
