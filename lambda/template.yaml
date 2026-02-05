@@ -16,7 +16,7 @@ Parameters:
   CASServiceUrl:
     Type: String
     Description: CAS callback service URL for TAMU authentication
-    Default: https://your-app.amplifyapp.com/auth/callback
+    Default: https://main.dnwd5yr9u60pa.amplifyapp.com/auth/callback
 
 Globals:
   Function:
@@ -73,7 +73,7 @@ Resources:
       StageName: prod
       CorsConfiguration:
         AllowOrigins:
-          - 'https://your-app.amplifyapp.com'
+          - 'https://main.dnwd5yr9u60pa.amplifyapp.com'
           - 'http://localhost:3000'
         AllowMethods:
           - GET

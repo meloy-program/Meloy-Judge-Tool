@@ -1,1 +1,4 @@
 .DS_Store
+
+# Scripts with sensitive configs (if you make them configurable)
+scripts/.env
