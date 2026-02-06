@@ -61,6 +61,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
 
             // Insert new scores
             for (const score of scores) {
+                console.log(`[score-submit] Saving score: criteriaId=${score.criteriaId}, score=${score.score}, reflection=${score.reflection ? 'YES (' + score.reflection.length + ' chars)' : 'NONE'}`);
                 await client.query(
                     `INSERT INTO scores (submission_id, judge_id, team_id, rubric_criteria_id, score, reflection)
                      VALUES ($1, $2, $3, $4, $5, $6)`,

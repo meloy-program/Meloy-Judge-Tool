@@ -10,8 +10,10 @@ import type { Event } from "@/lib/types/api"
 
 interface LeaderboardScreenProps {
   eventId: string
+  judgeId: string | null
   onBack: () => void
   judgeName: string | null
+  isAdmin?: boolean
 }
 
 /**
@@ -22,7 +24,7 @@ interface LeaderboardScreenProps {
  * - "ended" → Final Leaderboard Screen
  * Dev toggle available to manually override
  */
-export function LeaderboardScreen({ eventId, onBack, judgeName }: LeaderboardScreenProps) {
+export function LeaderboardScreen({ eventId, judgeId, onBack, judgeName, isAdmin = false }: LeaderboardScreenProps) {
   const [event, setEvent] = useState<Event | null>(null)
   const [manualOverride, setManualOverride] = useState<boolean | null>(null)
 
@@ -66,9 +68,9 @@ export function LeaderboardScreen({ eventId, onBack, judgeName }: LeaderboardScr
 
       {/* Conditionally render the appropriate screen */}
       {isPostJudging ? (
-        <FinalLeaderboardScreen eventId={eventId} onBack={onBack} judgeName={judgeName} />
+        <FinalLeaderboardScreen eventId={eventId} onBack={onBack} judgeName={judgeName} isAdmin={isAdmin} />
       ) : (
-        <JudgeProgressScreen eventId={eventId} onBack={onBack} judgeName={judgeName} />
+        <JudgeProgressScreen eventId={eventId} judgeId={judgeId} onBack={onBack} judgeName={judgeName} isAdmin={isAdmin} />
       )}
     </div>
   )

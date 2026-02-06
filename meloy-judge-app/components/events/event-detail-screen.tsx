@@ -5,14 +5,28 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import type { Screen } from "@/app/page"
-import { ArrowLeft, BarChart3, Users, CheckCircle2, Clock, Circle, MapPin, CalendarDays, Activity, Settings, User, Loader2 } from "lucide-react"
+import { ArrowLeft, BarChart3, Users, CheckCircle2, Clock, Circle, MapPin, CalendarDays, Activity, Settings, User, Loader2, Menu, Shield, ExternalLink, ChevronDown, UserCircle2 } from "lucide-react"
 import { getEvent, getEventTeams } from "@/lib/api"
 import type { Event, Team } from "@/lib/types/api"
-import { getJudgeId } from "@/lib/judge-context"
 
 interface EventDetailScreenProps {
   eventId: string
+  judgeId: string | null
   onSelectTeam: (teamId: string) => void
   onBack: () => void
   onNavigate: (screen: Screen) => void
@@ -22,24 +36,29 @@ interface EventDetailScreenProps {
   judgeName: string | null
 }
 
-export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, onManageEvent, onOpenModerator, isAdmin, judgeName }: EventDetailScreenProps) {
+export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNavigate, onManageEvent, onOpenModerator, isAdmin, judgeName }: EventDetailScreenProps) {
   const [event, setEvent] = useState<Event | null>(null)
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [expandedTeam, setExpandedTeam] = useState<Team | null>(null)
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true)
         setError(null)
-        const judgeId = getJudgeId()
         const [eventData, teamsData] = await Promise.all([
           getEvent(eventId),
-          getEventTeams(eventId, { activeOnly: true, judgeId: judgeId || undefined })  // activeOnly=true for judges, filter completed teams
+          getEventTeams(eventId, { activeOnly: false, judgeId: judgeId || undefined })
         ])
         setEvent(eventData.event)
-        setTeams(teamsData.teams)
+        // For judges: hide teams still in "waiting" status (not yet activated by moderator)
+        // Admins see all teams regardless of status
+        const filteredTeams = isAdmin
+          ? teamsData.teams
+          : teamsData.teams.filter(t => t.status !== 'waiting')
+        setTeams(filteredTeams)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load event data')
       } finally {
@@ -47,7 +66,7 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
       }
     }
     fetchData()
-  }, [eventId])
+  }, [eventId, judgeId])
 
   // Determine event type and labels from RDS data
   const isPWSEvent = event?.event_type?.includes("problems-worth-solving") ?? false
@@ -117,76 +136,102 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-primary/5">
       <header className="relative overflow-hidden border-b bg-linear-to-b from-primary to-[#3d0000] shadow-xl backdrop-blur-sm">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
-        <div className="relative mx-auto max-w-7xl px-6 py-4 lg:px-8">
-          {/* Main Header Row */}
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
-            <div className="flex items-center gap-4 lg:gap-5">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-3 sm:py-4 lg:px-8">
+          {/* Main Header Row - Always one line */}
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            {/* Left Side: Back Button + Logo */}
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
               <Button
                 variant="ghost"
                 onClick={onBack}
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                className="flex h-12 w-12 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
               >
-                <ArrowLeft className="h-7 w-7" />
+                <ArrowLeft className="h-6 w-6 lg:h-7 lg:w-7" />
               </Button>
-              <div className="flex items-center gap-3 lg:gap-4">
-                <div className="flex h-16 lg:h-20 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 px-3 py-2 shadow-md backdrop-blur-md">
-                  <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-12 lg:h-16 w-auto object-contain" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-white/60">Event spotlight</p>
-                  <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">{event.name}</h1>
-                </div>
+              <div className="flex h-14 sm:h-16 lg:h-20 xl:h-20 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 px-2 sm:px-3 py-2 shadow-md backdrop-blur-md">
+                <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-10 sm:h-12 lg:h-14 xl:h-16 w-auto object-contain" />
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 justify-center lg:flex-nowrap lg:justify-end">
-              {/* User Profile */}
-              <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
-                  <User className="h-5 w-5 text-white" />
+            {/* Center: Event Type Logo + Event Title (hidden on mobile, shown on larger screens) */}
+            <div className="hidden md:flex flex-col items-center flex-1 min-w-0 px-4">
+              <Image src={eventLogoSrc} alt="Event type" width={120} height={32} className="h-6 lg:h-7 xl:h-8 w-auto object-contain brightness-0 invert opacity-60 mb-1" />
+              <h1 className="text-xl lg:text-2xl xl:text-3xl font-semibold text-white leading-tight text-center truncate w-full">{event.name}</h1>
+            </div>
+
+            {/* Right Side: User Profile + Menu */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* User Profile - Always visible */}
+              <div className="flex items-center gap-2 sm:gap-3 rounded-full border-2 border-white/30 bg-white/10 px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-white leading-tight">{judgeName || "Admin"}</span>
-                  <span className="text-xs text-white/70">Admin</span>
+                  <span className="text-xs sm:text-sm font-semibold text-white leading-tight">{judgeName || "User"}</span>
+                  <span className="text-[10px] sm:text-xs text-white/70">{isAdmin ? "Admin" : "Judge"}</span>
                 </div>
               </div>
 
-              <Button
-                onClick={() => onNavigate("leaderboard")}
-                className="h-11 rounded-full bg-white px-5 lg:px-6 text-base font-semibold text-primary shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-white/95"
-              >
-                <BarChart3 className="mr-2 h-5 w-5" />
-                View Leaderboard
-              </Button>
-              {isAdmin && (
-                <>
-                  <Button
-                    onClick={onOpenModerator}
-                    className="h-11 rounded-full border-2 border-white/30 bg-white/10 px-5 lg:px-6 text-base font-semibold text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
-                  >
-                    <Activity className="mr-2 h-5 w-5" />
-                    Moderator
-                  </Button>
+              {/* Menu Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    onClick={() => onManageEvent(eventId)}
-                    className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
                   >
-                    <Settings className="h-6 w-6" />
+                    <Menu className="h-6 w-6" />
                   </Button>
-                </>
-              )}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent 
+                  align="end" 
+                  className="w-56 rounded-2xl border-2 border-slate-200 bg-white/95 backdrop-blur-xl shadow-2xl"
+                >
+                  <DropdownMenuItem
+                    onClick={() => onNavigate("leaderboard")}
+                    className="flex items-center gap-3 px-4 py-3 text-base font-medium text-slate-700 cursor-pointer rounded-xl hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
+                  >
+                    <BarChart3 className="h-5 w-5" />
+                    <span>View Leaderboard</span>
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator className="my-1 bg-slate-200" />
+                      <DropdownMenuItem
+                        onClick={onOpenModerator}
+                        className="flex items-center gap-3 px-4 py-3 text-base font-medium text-slate-700 cursor-pointer rounded-xl hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
+                      >
+                        <Shield className="h-5 w-5" />
+                        <span>Moderator Screen</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="my-1 bg-slate-200" />
+                      <DropdownMenuItem
+                        onClick={() => onManageEvent(eventId)}
+                        className="flex items-center gap-3 px-4 py-3 text-base font-medium text-slate-700 cursor-pointer rounded-xl hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
+                      >
+                        <Settings className="h-5 w-5" />
+                        <span>Event Settings</span>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
+          </div>
+
+          {/* Mobile Event Title - Centered Below */}
+          <div className="md:hidden mt-3 flex flex-col items-center text-center">
+            <Image src={eventLogoSrc} alt="Event type" width={100} height={28} className="h-5 w-auto object-contain brightness-0 invert opacity-60 mb-1" />
+            <h1 className="text-lg font-semibold text-white leading-tight">{event.name}</h1>
           </div>
         </div>
       </header>
 
-      <main className="relative mx-auto max-w-7xl px-6 py-5 lg:py-6">
+      <main className="relative mx-auto max-w-7xl px-4 sm:px-6 py-4 sm:py-5 lg:py-6">
         {/* Unified Event Info Banner - sponsor and event details in one cohesive card */}
-        <div className="relative mb-6 overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
+        <div className="relative mb-4 sm:mb-6 overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-red-950 shadow-xl">
           {/* Inner container with sponsor gradient - smaller radius to fit inside border */}
           <div
-            className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6"
+            className="relative rounded-[14px] sm:rounded-[22px] py-3 px-4 sm:py-4 sm:px-5 lg:py-5 lg:px-6"
             style={{
               background: `linear-gradient(to bottom, ${sponsor.primaryColor}, ${sponsor.secondaryColor})`
             }}
@@ -194,132 +239,332 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
             {/* Very subtle texture overlay */}
             <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
 
-            <div className="relative flex items-center gap-6 lg:gap-8">
-              {/* Sponsor block with glass container showing sponsor color */}
-              <div className="group relative flex items-center gap-5 lg:gap-6 cursor-pointer transition-transform hover:scale-[1.02]">
-                {/* Dynamic glass container - adapts to logo aspect ratio */}
+            {/* All Sizes - Centered sponsor + event details */}
+            <div className="relative flex flex-col items-center gap-3 lg:flex-row lg:justify-center lg:gap-8">
+              {/* Sponsor block - centered */}
+              <div className="group flex items-center gap-3 sm:gap-4 lg:gap-5 cursor-pointer transition-transform hover:scale-[1.02]">
                 <div
-                  className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl transition-all group-hover:shadow-2xl bg-white/70 border-2 border-white/80 min-h-20 lg:min-h-24"
+                  className="relative flex shrink-0 items-center justify-center rounded-xl lg:rounded-2xl py-2 px-4 sm:py-3 sm:px-5 lg:py-3 lg:px-6 xl:py-4 xl:px-8 shadow-xl backdrop-blur-xl transition-all group-hover:shadow-2xl bg-white/70 border-2 border-white/80"
                 >
-                  {/* Inner glow on hover */}
-                  <div
-                    className="absolute inset-0 rounded-2xl opacity-0 transition-opacity group-hover:opacity-100"
-                    style={{ backgroundColor: `${sponsor.primaryColor}10` }}
-                  />
                   <Image
                     src={sponsor.logo}
                     alt={sponsor.name ?? "Sponsor logo"}
                     width={120}
                     height={60}
-                    className="relative h-14 lg:h-16 w-auto max-w-45 lg:max-w-55 object-contain"
+                    className="relative h-8 sm:h-10 lg:h-14 xl:h-16 w-auto max-w-[100px] sm:max-w-[130px] lg:max-w-[180px] object-contain"
                   />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
-                  <p className="text-xl lg:text-2xl font-semibold text-white leading-tight max-w-100 lg:max-w-105 wrap-break-word drop-shadow-sm">{sponsor.name}</p>
+                  <p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-white/70">Presented by</p>
+                  <p className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold text-white leading-tight break-words drop-shadow-sm">{sponsor.name}</p>
                 </div>
               </div>
 
-              {/* Event details card with status badge - enhanced glass aesthetic */}
-              <div className="ml-auto flex items-center gap-3">
-                {/* Event Status Badge - enhanced glass background */}
-                <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-sm font-semibold text-emerald-700">Active</span>
-                </div>
+              {/* Divider - desktop only */}
+              <div className="hidden lg:block w-px h-12 bg-white/20" />
 
-                {/* Event details - enhanced glass background */}
-                <div className="flex items-center rounded-3xl border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
-                  <div className="flex items-center gap-3">
-                    <Image src={eventLogoSrc} alt="Event logo" width={64} height={64} className="w-16 h-16 lg:w-20 lg:h-20 object-contain" />
-
-                    <div className="flex items-center gap-5 lg:gap-6">
-                      <div className="flex items-center gap-2 lg:gap-3">
-                        <CalendarDays className="h-5 w-5 text-slate-700" />
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.12em] text-slate-600">Dates</p>
-                          <p className="text-sm lg:text-base font-semibold text-slate-900">{formatDateRange(event.start_date, event.end_date)}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 lg:gap-3">
-                        <MapPin className="h-5 w-5 text-slate-700" />
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.12em] text-slate-600">Venue</p>
-                          <p className="text-sm lg:text-base font-semibold text-slate-900">{event.location}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {/* Event details - inline on all sizes */}
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 lg:gap-x-6">
+                <span className="flex items-center gap-1.5 text-xs sm:text-sm text-white/80">
+                  <CalendarDays className="h-3.5 w-3.5 lg:h-4 lg:w-4 shrink-0" />
+                  <span>{formatDateRange(event.start_date, event.end_date)}</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-xs sm:text-sm text-white/80">
+                  <MapPin className="h-3.5 w-3.5 lg:h-4 lg:w-4 shrink-0" />
+                  <span>{event.location}</span>
+                </span>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 space-y-5">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="mt-4 sm:mt-6 space-y-4 sm:space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
             <div>
-              <h2 className="text-3xl font-semibold text-slate-900">{participantLabel} roster</h2>
-              <p className="text-sm text-slate-500">
+              <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900">{participantLabel} roster</h2>
+              <p className="text-xs sm:text-sm text-slate-500">
                 {scoredCount} of {totalCount} {participantsLabel.toLowerCase()} scored
               </p>
             </div>
           </div>
 
-          <div className="grid gap-6">
-            {teams.length > 0 ? teams.map((team) => {
+          <div className="grid gap-4 sm:gap-6">
+            {teams.length > 0 ? teams
+              .sort((a, b) => {
+                // Move completed/done teams to the bottom
+                const aDone = a.has_current_user_scored || a.status === 'done' || a.status === 'completed';
+                const bDone = b.has_current_user_scored || b.status === 'done' || b.status === 'completed';
+                if (aDone && !bDone) return 1;
+                if (!aDone && bDone) return -1;
+                return 0;
+              })
+              .map((team, index) => {
               const isScored = team.has_current_user_scored ?? false;
+              const isDone = team.status === 'done' || team.status === 'completed';
+              const isGreyedOut = isScored || isDone;
+              const truncatedDescription = team.description && team.description.length > 120 
+                ? team.description.substring(0, 120) + '...' 
+                : team.description;
+              
               return (
                 <Card
                   key={team.id}
-                  className={`group relative overflow-hidden rounded-3xl border shadow-md transition-all ${isScored
-                    ? 'border-emerald-200 bg-emerald-50/50 opacity-75 cursor-default'
-                    : 'border-slate-200/70 bg-white/90 hover:-translate-y-1 hover:shadow-xl cursor-pointer'
+                  className={`group relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-primary/25 shadow-lg transition-all ${
+                    isGreyedOut 
+                      ? 'cursor-default opacity-50 grayscale'
+                      : 'hover:-translate-y-1 hover:shadow-2xl cursor-pointer'
                     }`}
-                  onClick={() => !isScored && onSelectTeam(team.id)}
+                  style={{ 
+                    background: 'linear-gradient(to bottom, #ffffff, #f1f5f9)',
+                    animationDelay: `${index * 50}ms` 
+                  }}
+                  onClick={() => !isGreyedOut && onSelectTeam(team.id)}
                   role="button"
-                  tabIndex={isScored ? -1 : 0}
+                  tabIndex={isGreyedOut ? -1 : 0}
                   onKeyDown={(event) => {
-                    if (!isScored && (event.key === "Enter" || event.key === " ")) {
+                    if (!isGreyedOut && (event.key === "Enter" || event.key === " ")) {
                       event.preventDefault()
                       onSelectTeam(team.id)
                     }
                   }}
                 >
-                  <div className={`absolute inset-x-0 top-0 h-1 ${isScored
-                    ? 'bg-emerald-500'
-                    : 'bg-linear-to-r from-primary via-rose-400 to-orange-300 opacity-70'
-                    }`} />
-                  <CardHeader className="relative flex flex-col gap-3 p-6 pb-4">
-                    <div>
-                      <CardTitle className={`text-2xl font-semibold transition-colors ${isScored ? 'text-emerald-700' : 'text-slate-900 group-hover:text-primary'
-                        }`}>
-                        {team.name}
-                      </CardTitle>
-                      <CardDescription className="mt-2 text-base text-slate-600">{team.description || 'No description'}</CardDescription>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
+                  {/* Status Badge - Top Right on Desktop/Tablet */}
+                  <div className="hidden md:block absolute top-6 right-6 z-10">
+                    <div 
+                      className="flex items-center gap-2 rounded-full border-2 border-white/30 px-4 py-2 shadow-lg backdrop-blur-sm"
+                      style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                    >
                       {isScored ? (
-                        <Badge className="flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700 shadow-sm">
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span>Scores Submitted</span>
-                        </Badge>
+                        <>
+                          <div className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                          <span className="text-sm font-semibold text-blue-200">Scored</span>
+                        </>
+                      ) : isDone ? (
+                        <>
+                          <div className="h-2.5 w-2.5 rounded-full bg-gray-400" />
+                          <span className="text-sm font-semibold text-gray-200">Done</span>
+                        </>
+                      ) : team.status === 'active' ? (
+                        <>
+                          <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                          <span className="text-sm font-semibold text-green-200">Active</span>
+                        </>
                       ) : (
-                        <Badge className="flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-sm font-semibold text-slate-600 shadow-sm">
-                          <Circle className="h-4 w-4 text-slate-400" />
-                          <span className="text-slate-600">{team.status || 'Pending'}</span>
-                        </Badge>
+                        <>
+                          <div className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                          <span className="text-sm font-semibold text-slate-200 capitalize">{team.status || 'waiting'}</span>
+                        </>
                       )}
                     </div>
-                  </CardHeader>
+                  </div>
+
+                  {/* Team Members Card - Top Right on Desktop/Tablet */}
+                  {team.members && team.members.length > 0 && (
+                    <div className="hidden md:block absolute top-16 sm:top-20 right-4 sm:right-6 z-10 w-48 sm:w-56">
+                      <div 
+                        className="rounded-2xl border-2 border-white/30 backdrop-blur-sm px-3 sm:px-4 py-3 sm:py-4 shadow-lg"
+                        style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                      >
+                        <div className="flex items-center gap-2 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-white/30">
+                          <Users className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-white" />
+                          <span className="text-xs sm:text-sm font-bold text-white">Team Members</span>
+                        </div>
+                        <div className="flex flex-col gap-1.5 sm:gap-2">
+                          {team.members.map((member) => (
+                            <div key={member.id} className="flex items-center gap-2 text-xs sm:text-sm text-white">
+                              <UserCircle2 className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-white/70" />
+                              <span className="font-medium truncate">{member.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Desktop/Tablet: Photo pinned to Card edges via absolute, content offset with margin */}
+                  <div
+                    className="hidden md:block absolute top-0 bottom-0 left-0 w-48 lg:w-56 xl:w-64 bg-slate-100 bg-cover bg-center"
+                    style={team.photo_url ? { backgroundImage: `url(${team.photo_url})` } : undefined}
+                  >
+                    {!team.photo_url && (
+                      <div className="flex items-center justify-center h-full">
+                        <Image src="/meloyprogram.png" alt="Meloy logo placeholder" width={120} height={120} className="brightness-0 opacity-25" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="hidden md:flex flex-col gap-3 min-w-0 p-6 ml-48 lg:ml-56 xl:ml-64 pr-64">
+                    {/* Team Header */}
+                    <div className="flex-1">
+                      <CardTitle className="text-2xl font-bold transition-colors text-[#500000] group-hover:text-[#3d0000]">
+                        {team.name}
+                      </CardTitle>
+                      <CardDescription className="mt-3 text-base text-[#500000]/90 leading-relaxed">
+                        {truncatedDescription || 'No description'}
+                      </CardDescription>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap items-center gap-3 pt-2 mt-auto">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (team.project_url) {
+                            window.open(team.project_url, '_blank');
+                          }
+                        }}
+                        disabled={!team.project_url}
+                        variant="outline"
+                        className={`rounded-full border-2 border-white/30 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all ${
+                          team.project_url 
+                            ? 'text-white hover:opacity-90' 
+                            : 'text-white/40 cursor-not-allowed opacity-50'
+                        }`}
+                        style={team.project_url ? { background: 'linear-gradient(to bottom, #500000, #3d0000)' } : { background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                      >
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        View Presentation
+                      </Button>
+
+                      {team.description && team.description.length > 120 && (
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedTeam(team);
+                          }}
+                          variant="ghost"
+                          className="rounded-full px-4 py-2 text-sm font-medium text-[#500000] hover:bg-slate-200/50 backdrop-blur-sm"
+                        >
+                          Read More
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile Layout - Completely Different */}
+                  <div className="md:hidden relative flex flex-col items-center p-6 text-center">
+                    {/* Team Photo - Centered, stretched width */}
+                    <div className="w-full mb-6">
+                      {team.photo_url ? (
+                        <img 
+                          src={team.photo_url} 
+                          alt={`${team.name} photo`}
+                          className="w-full h-64 rounded-2xl object-cover border-2 border-slate-200 shadow-lg"
+                        />
+                      ) : (
+                        <div className="flex w-full h-64 items-center justify-center rounded-2xl bg-slate-100 backdrop-blur-sm border-2 border-slate-200">
+                          <Image src="/meloyprogram.png" alt="Meloy logo placeholder" width={120} height={120} className="brightness-0 opacity-25" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Team Title - Centered */}
+                    <CardTitle className="text-2xl font-bold text-[#500000] mb-3">
+                      {team.name}
+                    </CardTitle>
+
+                    {/* Team Description - Centered */}
+                    <CardDescription className="text-base text-[#500000]/90 leading-relaxed mb-4">
+                      {truncatedDescription || 'No description'}
+                    </CardDescription>
+
+                    {/* Team Members - Centered */}
+                    {team.members && team.members.length > 0 && (
+                      <div className="w-full mb-4">
+                        <div 
+                          className="rounded-2xl border-2 border-white/30 backdrop-blur-sm px-4 py-3 shadow-lg"
+                          style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                        >
+                          <div className="flex items-center justify-center gap-2 mb-3 pb-3 border-b border-white/30">
+                            <Users className="h-4 w-4 text-white" />
+                            <span className="text-sm font-bold text-white">Team Members</span>
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            {team.members.map((member) => (
+                              <div key={member.id} className="flex items-center justify-center gap-2 text-sm text-white">
+                                <UserCircle2 className="h-4 w-4 text-white/70" />
+                                <span className="font-medium">{member.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* View Presentation Button - Centered */}
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (team.project_url) {
+                          window.open(team.project_url, '_blank');
+                        }
+                      }}
+                      disabled={!team.project_url}
+                      variant="outline"
+                      className={`rounded-full border-2 border-white/30 px-6 py-3 text-base font-semibold shadow-lg backdrop-blur-sm transition-all mb-4 ${
+                        team.project_url 
+                          ? 'text-white hover:opacity-90' 
+                          : 'text-white/40 cursor-not-allowed opacity-50'
+                      }`}
+                      style={team.project_url ? { background: 'linear-gradient(to bottom, #500000, #3d0000)' } : { background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                    >
+                      <ExternalLink className="mr-2 h-5 w-5" />
+                      View Presentation
+                    </Button>
+
+                    {team.description && team.description.length > 120 && (
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedTeam(team);
+                        }}
+                        variant="ghost"
+                        className="rounded-full px-4 py-2 text-sm font-medium text-[#500000] hover:bg-slate-200/50 backdrop-blur-sm mb-4"
+                      >
+                        Read More
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      </Button>
+                    )}
+
+                    {/* Status Badge - Bottom Center on Mobile */}
+                    <div className="mt-auto pt-4">
+                      <div 
+                        className="inline-flex items-center gap-2 rounded-full border-2 border-white/30 px-4 py-2 shadow-lg backdrop-blur-sm"
+                        style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                      >
+                        {isScored ? (
+                          <>
+                            <div className="h-2.5 w-2.5 rounded-full bg-blue-400" />
+                            <span className="text-sm font-semibold text-blue-200">Scored</span>
+                          </>
+                        ) : isDone ? (
+                          <>
+                            <div className="h-2.5 w-2.5 rounded-full bg-gray-400" />
+                            <span className="text-sm font-semibold text-gray-200">Done</span>
+                          </>
+                        ) : team.status === 'active' ? (
+                          <>
+                            <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+                            <span className="text-sm font-semibold text-green-200">Active</span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="h-2.5 w-2.5 rounded-full bg-slate-400" />
+                            <span className="text-sm font-semibold text-slate-200 capitalize">{team.status || 'waiting'}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </Card>
               );
             }) : (
-              <Card className="rounded-[28px] border border-slate-200/70 bg-white/95 shadow-lg">
-                <CardContent className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-                  <Clock className="h-16 w-16 text-slate-300" />
-                  <CardTitle className="text-xl font-semibold text-slate-700">No Active {participantsLabel}</CardTitle>
-                  <CardDescription className="text-base text-slate-500 max-w-md">
+              <Card className="rounded-2xl sm:rounded-[28px] border-2 border-primary/25 bg-white/95 shadow-lg">
+                <CardContent className="flex flex-col items-center justify-center gap-2 sm:gap-3 py-12 sm:py-16 px-4 text-center">
+                  <Clock className="h-12 w-12 sm:h-16 sm:w-16 text-slate-300" />
+                  <CardTitle className="text-lg sm:text-xl font-semibold text-slate-700">No Active {participantsLabel}</CardTitle>
+                  <CardDescription className="text-sm sm:text-base text-slate-500 max-w-md px-2">
                     The moderator will activate {participantsLabel.toLowerCase()} for judging when ready. Check back soon or contact the event moderator.
                   </CardDescription>
                 </CardContent>
@@ -328,6 +573,136 @@ export function EventDetailScreen({ eventId, onSelectTeam, onBack, onNavigate, o
           </div>
         </div>
       </main>
+
+      {/* Expanded Description Dialog */}
+      <Dialog open={!!expandedTeam} onOpenChange={(open) => !open && setExpandedTeam(null)}>
+        <DialogContent 
+          className="max-w-4xl rounded-2xl sm:rounded-3xl border-2 border-primary/25 shadow-2xl max-h-[90vh] overflow-y-auto"
+          style={{ background: 'linear-gradient(to bottom, #ffffff, #f1f5f9)' }}
+        >
+          <DialogHeader>
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-4">
+              {/* Team Photo */}
+              <div className="shrink-0 mx-auto sm:mx-0">
+                {expandedTeam?.photo_url ? (
+                  <img 
+                    src={expandedTeam.photo_url} 
+                    alt={`${expandedTeam.name} photo`}
+                    className="h-40 w-40 sm:h-48 sm:w-48 lg:h-56 lg:w-56 rounded-2xl object-cover border-2 border-slate-200 shadow-lg"
+                  />
+                ) : (
+                  <div className="flex h-40 w-40 sm:h-48 sm:w-48 lg:h-56 lg:w-56 items-center justify-center rounded-2xl bg-slate-100 backdrop-blur-sm border-2 border-slate-200">
+                    <Image src="/meloyprogram.png" alt="Meloy logo placeholder" width={100} height={100} className="brightness-0 opacity-25" />
+                  </div>
+                )}
+              </div>
+
+              {/* Team Info */}
+              <div className="flex-1 text-center sm:text-left">
+                <DialogTitle className="text-2xl sm:text-3xl font-bold text-[#500000] mb-2 sm:mb-3">
+                  {expandedTeam?.name}
+                </DialogTitle>
+                
+                {/* Status Badge - Glassy Pill */}
+                <div 
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-white/30 backdrop-blur-sm px-3 sm:px-4 py-1.5 sm:py-2 shadow-lg mb-3"
+                  style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                >
+                  {expandedTeam?.has_current_user_scored ? (
+                    <>
+                      <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-blue-400" />
+                      <span className="text-xs sm:text-sm font-semibold text-blue-200">Completed</span>
+                    </>
+                  ) : expandedTeam?.status === 'active' ? (
+                    <>
+                      <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-green-400" />
+                      <span className="text-xs sm:text-sm font-semibold text-green-200">Active</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full bg-slate-400" />
+                      <span className="text-xs sm:text-sm font-semibold text-slate-200 capitalize">{expandedTeam?.status || 'waiting'}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 sm:space-y-6">
+            {/* Project Description */}
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold text-[#500000] mb-2 sm:mb-3 flex items-center gap-2">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-[#500000]" />
+                Project Description
+              </h3>
+              <DialogDescription className="text-sm sm:text-base text-[#500000]/90 leading-relaxed whitespace-pre-wrap">
+                {expandedTeam?.description || 'No description provided'}
+              </DialogDescription>
+            </div>
+
+            {/* Team Members */}
+            {expandedTeam?.members && expandedTeam.members.length > 0 && (
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-[#500000] mb-2 sm:mb-3 flex items-center gap-2">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-[#500000]" />
+                  Team Members ({expandedTeam.members.length})
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  {expandedTeam.members.map((member) => (
+                    <div 
+                      key={member.id} 
+                      className="flex items-center gap-2 sm:gap-3 rounded-xl border-2 border-white/30 backdrop-blur-sm p-3 sm:p-4"
+                      style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                    >
+                      <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-white/20 border border-white/30 shrink-0">
+                        <UserCircle2 className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base font-semibold text-white truncate">{member.name}</p>
+                        <p className="text-xs sm:text-sm text-white/80 truncate">{member.email}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 pt-2 sm:pt-4">
+              <Button
+                onClick={() => {
+                  if (expandedTeam?.project_url) {
+                    window.open(expandedTeam.project_url, '_blank');
+                  }
+                }}
+                disabled={!expandedTeam?.project_url}
+                className={`rounded-full px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold shadow-lg backdrop-blur-sm transition-all border-2 border-white/30 ${
+                  expandedTeam?.project_url
+                    ? 'text-white hover:opacity-90'
+                    : 'text-white/40 cursor-not-allowed opacity-50'
+                }`}
+                style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+              >
+                <ExternalLink className="mr-1.5 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                View Presentation
+              </Button>
+              {!expandedTeam?.has_current_user_scored && (
+                <Button
+                  onClick={() => {
+                    setExpandedTeam(null);
+                    onSelectTeam(expandedTeam!.id);
+                  }}
+                  className="rounded-full text-white px-5 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base font-semibold shadow-md hover:opacity-90"
+                  style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                >
+                  Score This Team
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

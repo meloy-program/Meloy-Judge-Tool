@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { LoginScreen } from "@/components/authentication/login-screen"
 import { DashboardScreen } from "@/components/dashboard/dashboard-screen"
 import { EventDetailScreen } from "@/components/events/event-detail-screen"
@@ -13,6 +13,7 @@ import { EventManagerScreen } from "@/components/management/event-manager-screen
 import { InsightsScreen } from "@/components/management/insights-screen"
 import { ModeratorScreen } from "@/components/management/moderator-screen"
 import { SettingsScreen } from "@/components/settings/settings-screen"
+import { getCurrentUser } from "@/lib/api"
 
 export type Screen = "login" | "dashboard" | "judge-selection" | "event-detail" | "team-detail" | "leaderboard" | "admin" | "settings" | "event-creation" | "event-manager" | "insights" | "moderator"
 
@@ -25,6 +26,22 @@ export default function Home() {
   const [previousScreen, setPreviousScreen] = useState<Screen | null>(null)
   const [judgeId, setJudgeId] = useState<string | null>(null)
   const [judgeName, setJudgeName] = useState<string | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
+
+  // Fetch logged-in user's actual name
+  useEffect(() => {
+    async function fetchUser() {
+      if (currentScreen !== "login") {
+        try {
+          const userData = await getCurrentUser()
+          setUserName(userData.user.name || 'User')
+        } catch (err) {
+          console.error('Failed to fetch user:', err)
+        }
+      }
+    }
+    fetchUser()
+  }, [currentScreen])
 
   const handleLogin = (admin = false) => {
     setIsAdmin(admin)
@@ -135,23 +152,24 @@ export default function Home() {
       {currentScreen === "event-detail" && selectedEventId && (
         <EventDetailScreen
           eventId={selectedEventId}
+          judgeId={judgeId}
           onSelectTeam={handleSelectTeam}
           onBack={handleBack}
           onNavigate={setCurrentScreen}
           onManageEvent={handleManageEvent}
           onOpenModerator={() => setCurrentScreen("moderator")}
           isAdmin={isAdmin}
-          judgeName={judgeName}
+          judgeName={isAdmin ? userName : judgeName}
         />
       )}
       {currentScreen === "team-detail" && selectedTeamId && (
-        <TeamDetailScreen teamId={selectedTeamId} onBack={handleBack} judgeName={judgeName} />
+        <TeamDetailScreen teamId={selectedTeamId} judgeId={judgeId} onBack={handleBack} judgeName={isAdmin ? userName : judgeName} isAdmin={isAdmin} />
       )}
       {currentScreen === "leaderboard" && selectedEventId && (
-        <LeaderboardScreen eventId={selectedEventId} onBack={handleBack} judgeName={judgeName} />
+        <LeaderboardScreen eventId={selectedEventId} judgeId={judgeId} onBack={handleBack} judgeName={isAdmin ? userName : judgeName} isAdmin={isAdmin} />
       )}
       {currentScreen === "moderator" && selectedEventId && (
-        <ModeratorScreen eventId={selectedEventId} onBack={handleBack} />
+        <ModeratorScreen eventId={selectedEventId} onBack={handleBack} userName={userName} />
       )}
       {currentScreen === "admin" && <AdminScreen onBack={handleBack} onCreateEvent={handleCreateEvent} onManageEvent={handleManageEvent} />}
       {currentScreen === "event-creation" && <EventCreationScreen onBack={handleBack} onCreateEvent={handleEventCreated} />}

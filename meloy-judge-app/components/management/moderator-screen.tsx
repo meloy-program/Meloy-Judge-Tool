@@ -36,6 +36,7 @@ import type { Event } from "@/lib/types/api"
 interface ModeratorScreenProps {
   eventId: string
   onBack: () => void
+  userName?: string | null
 }
 
 type TeamStatus = "waiting" | "active" | "completed"
@@ -61,7 +62,7 @@ interface Team {
   scores: TeamScore[]
 }
 
-export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
+export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenProps) {
   const [teams, setTeams] = useState<Team[]>([])
   const [judges, setJudges] = useState<Judge[]>([])
   const [event, setEvent] = useState<Event | null>(null)
@@ -236,7 +237,7 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
                 <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-12 lg:h-16 w-auto object-contain" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Event Moderator</h1>
+                <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">Moderator Screen</h1>
                 <p className="text-sm text-white/85">{event.name} - Live Control</p>
               </div>
             </div>
@@ -247,8 +248,8 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
                 <User className="h-5 w-5 text-white" />
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-semibold text-white leading-tight">Prof. Michael Chen</span>
-                <span className="text-xs text-white/70">Moderator</span>
+                <span className="text-sm font-semibold text-white leading-tight">{userName || "Admin"}</span>
+                <span className="text-xs text-white/70">Admin</span>
               </div>
             </div>
           </div>
@@ -258,46 +259,49 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
       <div className="flex-1">
         <div className="mx-auto max-w-7xl px-6 py-5 lg:py-6 lg:px-8">
           {/* Company/Sponsor Card with Event Phase */}
-          <div className="relative mb-6 overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
-            <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
-              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
-
-              <div className="relative flex items-center justify-between">
-                {/* Sponsor block */}
-                <div className="group relative flex items-center gap-5 lg:gap-6">
-                  <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
-                    <Image
-                      src={sponsor.logo}
-                      alt={sponsor.name}
-                      width={120}
-                      height={60}
-                      className="relative h-14 lg:h-16 w-auto max-w-[180px] lg:max-w-[220px] object-contain"
-                    />
+          <div className="relative mb-6 overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-red-950 shadow-xl">
+            <div className="relative rounded-[14px] sm:rounded-[22px] bg-linear-to-b from-red-600 to-red-950">
+              <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20 rounded-[14px] sm:rounded-[22px]" />
+              {/* Sponsor content */}
+              <div className="relative flex items-center justify-center py-3 px-4 sm:py-4 sm:px-5 lg:py-5 lg:px-6">
+                <div className="group flex items-center gap-3 sm:gap-4 lg:gap-5">
+                  <div className="relative flex shrink-0 items-center justify-center rounded-xl lg:rounded-2xl py-2 px-4 sm:py-3 sm:px-5 lg:py-3 lg:px-6 xl:py-4 xl:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
+                    <Image src={sponsor.logo} alt={sponsor.name} width={120} height={60} className="relative h-8 sm:h-10 lg:h-14 xl:h-16 w-auto max-w-[100px] sm:max-w-[130px] lg:max-w-[180px] object-contain" />
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
-                    <p className="text-xl lg:text-2xl font-semibold text-white leading-tight">{sponsor.name}</p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-white/70">Presented by</p>
+                    <p className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold text-white leading-tight">{sponsor.name}</p>
                   </div>
                 </div>
-
-                {/* Event Phase Status */}
-                {eventStatus === 'ended' ? (
-                  <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
-                    <div className="h-2 w-2 rounded-full bg-slate-500" />
-                    <span className="text-sm font-semibold text-slate-700">Judging Ended</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
-                  </div>
-                )}
+              </div>
+              {/* Status strip */}
+              <div className="relative border-t border-white/10">
+                <div className="absolute inset-0 bg-black/15 backdrop-blur-sm" />
+                <div className="relative flex items-center justify-center gap-2.5 py-2 sm:py-2.5">
+                  {eventStatus === 'ended' ? (
+                    <>
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-slate-400" />
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.15em] text-white/80">Judging Ended</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                      </span>
+                      <span className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.15em] text-white/80">Judging in Progress</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Team Queue - Horizontal Layout */}
-          <Card className="relative mb-6 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/95">
+          <Card className="relative mb-6 overflow-hidden rounded-[28px] border-2 border-primary/25 bg-white/95 shadow-lg">
             <CardHeader className="px-6 pt-5 pb-3">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary/20 to-primary/10">
@@ -423,7 +427,7 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
           </Card>
 
           {/* Live Scoring - Full Width */}
-          <Card className="relative mb-6 overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/95">
+          <Card className="relative mb-6 overflow-hidden rounded-[28px] border-2 border-primary/25 bg-white/95 shadow-lg">
             <CardHeader className="p-6 pb-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -534,7 +538,7 @@ export function ModeratorScreen({ eventId, onBack }: ModeratorScreenProps) {
           </Card>
 
           {/* Event Control - Full Width */}
-          <Card className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/95">
+          <Card className="relative overflow-hidden rounded-[28px] border-2 border-primary/25 bg-white/95 shadow-lg">
             <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>

@@ -33,17 +33,25 @@ export interface Event {
     judges_count?: string;  // Populated by API aggregation
 }
 
+export interface TeamMember {
+    id: string;
+    name: string;
+    email: string;
+}
+
 export interface Team {
     id: string;
     event_id: string;
     name: string;
     description: string;
     project_url: string | null;
+    photo_url: string | null;  // Team photo URL
     presentation_order: number | null;
     status: string;
     created_at: string;
     updated_at: string;
     has_current_user_scored?: boolean;  // Added for judge scoring status
+    members?: TeamMember[];  // Team members
 }
 
 export interface User {
@@ -84,8 +92,9 @@ export interface ScoreSubmission {
     teamId: string;
     judgeId: string;  // Judge profile ID, not user ID
     scores: Array<{
-        criterionId: string;  // Changed from criteriaId to match backend
+        criteriaId: string;  // Must match backend field name
         score: number;
+        reflection?: string;  // Optional reflection for this criteria
     }>;
     overallComments?: string;
     timeSpentSeconds?: number;

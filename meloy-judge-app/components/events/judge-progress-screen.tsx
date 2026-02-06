@@ -8,12 +8,30 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, BarChart3, MessageSquare, TrendingUp, Users, Clock, Megaphone, BadgeDollarSign, Presentation, Sparkles, User, Loader2 } from "lucide-react"
 import { getEvent, getMyProgress } from "@/lib/api"
 import type { Event } from "@/lib/types/api"
-import { getJudgeId } from "@/lib/judge-context"
+
+/** Format an ISO timestamp into the user's local time */
+function formatJudgedTime(isoString: string): string {
+    try {
+        const date = new Date(isoString)
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        })
+    } catch {
+        return 'Unknown'
+    }
+}
 
 interface JudgeProgressScreenProps {
     eventId: string
+    judgeId: string | null
     onBack: () => void
     judgeName: string | null
+    isAdmin?: boolean
 }
 
 const rubricOrder = [
@@ -51,7 +69,7 @@ const rubricOrder = [
     },
 ] as const
 
-export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgressScreenProps) {
+export function JudgeProgressScreen({ eventId, judgeId, onBack, judgeName, isAdmin = false }: JudgeProgressScreenProps) {
     const [event, setEvent] = useState<Event | null>(null)
     const [judgeScores, setJudgeScores] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
@@ -62,9 +80,6 @@ export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgres
             try {
                 setLoading(true)
                 setError(null)
-                
-                // Get judge ID from context
-                const judgeId = getJudgeId()
                 
                 // If no judge profile is selected, show empty state (user might be admin/moderator viewing)
                 if (!judgeId) {
@@ -81,15 +96,8 @@ export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgres
                 ])
                 
                 setEvent(eventData.event)
-                // API now returns array directly, not wrapped in object
-                // Filter out incomplete submissions (no scores/breakdown)
-                const completedScores = Array.isArray(progressData) 
-                    ? progressData.filter((team: any) => 
-                        team.totalScore > 0 && 
-                        team.breakdown && 
-                        Object.keys(team.breakdown).length > 0
-                      )
-                    : []
+                // API returns only completed submissions, use directly
+                const completedScores = Array.isArray(progressData) ? progressData : []
                 setJudgeScores(completedScores)
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load judge progress data')
@@ -98,7 +106,7 @@ export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgres
             }
         }
         fetchData()
-    }, [eventId])
+    }, [eventId, judgeId])
 
     // Sponsor data from RDS or fallback
     const isPWSEvent = event?.event_type?.includes("problems-worth-solving") ?? false
@@ -174,36 +182,50 @@ export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgres
 
     return (
         <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-primary/5">
-            <header className="relative z-30 overflow-hidden border-b bg-linear-to-b from-primary to-[#3d0000] shadow-xl backdrop-blur-sm">
+            <header className="relative overflow-hidden border-b bg-linear-to-b from-primary to-[#3d0000] shadow-xl backdrop-blur-sm">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
-                <div className="relative mx-auto max-w-7xl px-6 py-4 lg:px-8">
-                    <div className="flex flex-wrap items-center justify-between gap-4 lg:gap-6">
-                        <div className="flex items-center gap-4 lg:gap-5">
+                <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-3 sm:py-4 lg:px-8">
+                    {/* Main Header Row */}
+                    <div className="flex items-center justify-between gap-2 sm:gap-4">
+                        {/* Left: Back + Logo */}
+                        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
                             <Button
                                 variant="ghost"
                                 onClick={onBack}
-                                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                                className="flex h-12 w-12 lg:h-14 lg:w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
                                 aria-label="Back to dashboard"
                             >
-                                <ArrowLeft className="h-7 w-7" />
+                                <ArrowLeft className="h-6 w-6 lg:h-7 lg:w-7" />
                             </Button>
-                            <div className="flex h-16 lg:h-20 w-auto items-center justify-center rounded-2xl border border-white/25 bg-white/15 px-3 py-2 shadow-md backdrop-blur-md">
-                                <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-12 lg:h-16 w-auto object-contain" />
-                            </div>
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60">My Progress</p>
-                                <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">{event.name}</h1>
+                            <div className="flex h-14 sm:h-16 lg:h-20 xl:h-20 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 px-2 sm:px-3 py-2 shadow-md backdrop-blur-md">
+                                <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-10 sm:h-12 lg:h-14 xl:h-16 w-auto object-contain" />
                             </div>
                         </div>
-                        <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
-                                <User className="h-5 w-5 text-white" />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="text-sm font-semibold text-white leading-tight">{judgeName || "Judge"}</span>
-                                <span className="text-xs text-white/70">Judge</span>
+
+                        {/* Center: Title (hidden on mobile) */}
+                        <div className="hidden md:flex flex-col items-center flex-1 min-w-0 px-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60 mb-1">My Progress</p>
+                            <h1 className="text-xl lg:text-2xl xl:text-3xl font-semibold text-white leading-tight text-center truncate w-full">{event.name}</h1>
+                        </div>
+
+                        {/* Right: User Profile */}
+                        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                            <div className="flex items-center gap-2 sm:gap-3 rounded-full border-2 border-white/30 bg-white/10 px-2.5 sm:px-4 py-1.5 sm:py-2 shadow-lg backdrop-blur-sm">
+                                <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+                                    <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-xs sm:text-sm font-semibold text-white leading-tight">{judgeName || "User"}</span>
+                                    <span className="text-[10px] sm:text-xs text-white/70">{isAdmin ? "Admin" : "Judge"}</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Mobile Title Row */}
+                    <div className="md:hidden text-center mt-3">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white/60">My Progress</p>
+                        <h1 className="text-lg font-semibold text-white leading-tight truncate">{event.name}</h1>
                     </div>
                 </div>
             </header>
@@ -211,28 +233,30 @@ export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgres
             <main className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
                 <div className="space-y-6">
                     {/* Sponsor Card */}
-                    <div className="relative overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
-                        <div className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6 bg-linear-to-b from-red-600 to-red-950">
-                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
-                            <div className="relative flex items-center justify-between">
-                                <div className="group relative flex items-center gap-5 lg:gap-6">
-                                    <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
-                                        <Image
-                                            src={sponsor.logo}
-                                            alt={sponsor.name}
-                                            width={120}
-                                            height={60}
-                                            className="relative h-14 lg:h-16 w-auto max-w-45 lg:max-w-55 object-contain"
-                                        />
+                    <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-red-950 shadow-xl">
+                        <div className="relative rounded-[14px] sm:rounded-[22px] bg-linear-to-b from-red-600 to-red-950">
+                            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20 rounded-[14px] sm:rounded-[22px]" />
+                            {/* Sponsor content */}
+                            <div className="relative flex items-center justify-center py-3 px-4 sm:py-4 sm:px-5 lg:py-5 lg:px-6">
+                                <div className="group flex items-center gap-3 sm:gap-4 lg:gap-5">
+                                    <div className="relative flex shrink-0 items-center justify-center rounded-xl lg:rounded-2xl py-2 px-4 sm:py-3 sm:px-5 lg:py-3 lg:px-6 xl:py-4 xl:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
+                                        <Image src={sponsor.logo} alt={sponsor.name} width={120} height={60} className="relative h-8 sm:h-10 lg:h-14 xl:h-16 w-auto max-w-[100px] sm:max-w-[130px] lg:max-w-[180px] object-contain" />
                                     </div>
-                                    <div>
-                                        <p className="text-xs uppercase tracking-[0.12em] text-white/80">Presented by</p>
-                                        <p className="text-xl lg:text-2xl font-semibold text-white leading-tight">{sponsor.name}</p>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-white/70">Presented by</p>
+                                        <p className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold text-white leading-tight">{sponsor.name}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
-                                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
+                            </div>
+                            {/* Status strip */}
+                            <div className="relative border-t border-white/10">
+                                <div className="absolute inset-0 bg-black/15 backdrop-blur-sm" />
+                                <div className="relative flex items-center justify-center gap-2.5 py-2 sm:py-2.5">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                                    </span>
+                                    <span className="text-[11px] sm:text-xs font-medium uppercase tracking-[0.15em] text-white/80">Judging in Progress</span>
                                 </div>
                             </div>
                         </div>
@@ -275,8 +299,7 @@ export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgres
                     {judgeScores.length > 0 ? (
                         <div className="space-y-6">
                             {judgeScores.map((team, index) => (
-                                <Card key={index} className="relative overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/95 shadow-md transition-all hover:-translate-y-0.5 hover:shadow-xl">
-                                    <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-rose-400 to-orange-300 opacity-60" />
+                                <Card key={index} className="relative overflow-hidden rounded-[28px] border-2 border-primary/25 bg-white/95 shadow-md transition-all hover:-translate-y-0.5 hover:shadow-xl hover:border-primary/40">
 
                                     <CardHeader className="flex flex-col gap-5 p-7 pb-5">
                                         <div className="flex flex-wrap items-start justify-between gap-5">
@@ -289,7 +312,7 @@ export function JudgeProgressScreen({ eventId, onBack, judgeName }: JudgeProgres
                                                     <CardDescription className="text-lg text-slate-600">{team.projectTitle || 'No description'}</CardDescription>
                                                     <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
                                                         <Clock className="h-4 w-4" />
-                                                        <span>{team.judgedAt || 'Recently judged'}</span>
+                                                        <span>Judged {team.judgedAt ? formatJudgedTime(team.judgedAt) : 'recently'}</span>
                                                     </div>
                                                 </div>
                                             </div>

@@ -141,8 +141,9 @@ CREATE TABLE teams (
     -- Status controlled by moderator
     status VARCHAR(20) DEFAULT 'waiting' CHECK (status IN ('waiting', 'active', 'completed')),
     
-    -- Project URL
+    -- Project URL and photo
     project_url TEXT, -- Added to match actual RDS schema
+    photo_url TEXT, -- Team photo URL (uploaded by admin)
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -299,7 +299,7 @@ router.get('/:eventId/teams', authenticate, async (req: AuthRequest, res) => {
             ? [req.params.eventId, judgeId]
             : [req.params.eventId];
 
-        const teams = await query(
+        const teamsData = await query(
             `SELECT 
         t.*,
         COUNT(DISTINCT ss.id) as total_scores,
@@ -316,6 +316,17 @@ router.get('/:eventId/teams', authenticate, async (req: AuthRequest, res) => {
       GROUP BY t.id
       ORDER BY t.presentation_order ASC, t.created_at DESC`,
             params
+        );
+
+        // Fetch members for each team
+        const teams = await Promise.all(
+            teamsData.map(async (team: any) => {
+                const members = await query(
+                    'SELECT id, name, email FROM team_members WHERE team_id = $1 ORDER BY name',
+                    [team.id]
+                );
+                return { ...team, members };
+            })
         );
 
         res.json({ teams });
@@ -526,76 +537,98 @@ router.get('/:eventId/my-progress', authenticate, async (req: AuthRequest, res) 
             return res.status(403).json({ error: 'Invalid judge profile' });
         }
 
-        // Get all teams for the event with judge profile's submission status
-        const teams = await query(
+        // Get all completed submissions for this judge with total scores
+        // Uses LEFT JOIN on rubric_criteria (not INNER JOIN) so scores with
+        // NULL rubric_criteria_id still appear (matches moderator endpoint pattern)
+        const submissions = await query(
             `SELECT 
-        t.id,
-        t.name,
-        t.description,
-        ss.id as submission_id,
-        ss.submitted_at,
-        CASE WHEN ss.submitted_at IS NOT NULL THEN true ELSE false END as is_completed
-      FROM teams t
-      LEFT JOIN score_submissions ss ON t.id = ss.team_id AND ss.judge_id = $1
-      WHERE t.event_id = $2
-      ORDER BY t.presentation_order`,
+                t.id as team_id,
+                t.name as team_name,
+                t.description,
+                ss.id as submission_id,
+                ss.submitted_at,
+                COALESCE(SUM(s.score), 0) as total_score
+            FROM score_submissions ss
+            JOIN teams t ON ss.team_id = t.id
+            LEFT JOIN scores s ON ss.id = s.submission_id
+            WHERE ss.judge_id = $1
+              AND ss.event_id = $2
+              AND ss.submitted_at IS NOT NULL
+            GROUP BY t.id, t.name, t.description, ss.id, ss.submitted_at
+            ORDER BY ss.submitted_at DESC`,
             [judgeId, eventId]
         );
 
-        // For each completed submission, get detailed scores
+        // Get all rubric criteria (for mapping unmapped scores by position)
+        const allCriteria = await query(
+            'SELECT id, short_name, display_order FROM rubric_criteria ORDER BY display_order'
+        );
+
+        // For each completed submission, get per-criteria breakdown
         const scoredTeams = [];
-        for (const team of teams) {
-            if (team.is_completed && team.submission_id) {
-                // Get all scores for this submission
-                const scores = await query(
-                    `SELECT 
-            rc.id as criteria_id,
-            rc.short_name,
-            s.score,
-            s.reflection
-          FROM scores s
-          JOIN rubric_criteria rc ON s.rubric_criteria_id = rc.id
-          WHERE s.submission_id = $1
-          ORDER BY rc.display_order`,
-                    [team.submission_id]
-                );
+        for (const sub of submissions) {
+            // Get individual scores with criteria names
+            // LEFT JOIN rubric_criteria so scores with NULL criteria_id still appear
+            const scores = await query(
+                `SELECT 
+                    s.score,
+                    s.reflection,
+                    s.rubric_criteria_id,
+                    rc.short_name,
+                    rc.display_order
+                FROM scores s
+                LEFT JOIN rubric_criteria rc ON s.rubric_criteria_id = rc.id
+                WHERE s.submission_id = $1
+                ORDER BY s.created_at ASC`,
+                [sub.submission_id]
+            );
 
-                // Get overall comments
-                const comment = await queryOne(
-                    'SELECT comments FROM judge_comments WHERE submission_id = $1',
-                    [team.submission_id]
-                );
+            // Get overall comments
+            const comment = await queryOne(
+                'SELECT comments FROM judge_comments WHERE submission_id = $1',
+                [sub.submission_id]
+            );
 
-                // Build breakdown object
-                const breakdown: Record<string, number> = {};
-                const reflections: Record<string, string> = {};
-                let totalScore = 0;
+            // Build breakdown object
+            const breakdown: Record<string, number> = {};
+            const reflections: Record<string, string> = {};
 
-                for (const score of scores) {
-                    breakdown[score.short_name.toLowerCase()] = score.score;
-                    totalScore += score.score;
-                    if (score.reflection) {
-                        reflections[score.short_name.toLowerCase()] = score.reflection;
-                    }
+            // Track unmapped scores (NULL rubric_criteria_id) for positional assignment
+            let unmappedIndex = 0;
+            // Determine which criteria are already mapped
+            const mappedCriteriaIds = new Set(
+                scores.filter((s: any) => s.rubric_criteria_id).map((s: any) => s.rubric_criteria_id)
+            );
+            // Get criteria that haven't been mapped yet (for positional assignment)
+            const unmappedCriteria = allCriteria.filter((c: any) => !mappedCriteriaIds.has(c.id));
+
+            for (const score of scores) {
+                let key: string;
+                if (score.short_name) {
+                    // Score has proper criteria mapping
+                    key = score.short_name.toLowerCase();
+                } else if (unmappedCriteria[unmappedIndex]) {
+                    // Assign unmapped score to next available criteria by position
+                    key = unmappedCriteria[unmappedIndex].short_name.toLowerCase();
+                    unmappedIndex++;
+                } else {
+                    key = `criteria_${Object.keys(breakdown).length + 1}`;
                 }
-
-                scoredTeams.push({
-                    teamName: team.name,
-                    projectTitle: team.description,
-                    totalScore,
-                    judgedAt: new Date(team.submitted_at).toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                    }),
-                    breakdown,
-                    reflections,
-                    comments: comment?.comments || null
-                });
+                breakdown[key] = score.score;
+                if (score.reflection) {
+                    reflections[key] = score.reflection;
+                }
             }
+
+            scoredTeams.push({
+                teamName: sub.team_name,
+                projectTitle: sub.description,
+                totalScore: parseFloat(sub.total_score),
+                judgedAt: sub.submitted_at,  // Return raw ISO timestamp, let frontend format in local timezone
+                breakdown,
+                reflections,
+                comments: comment?.comments || null
+            });
         }
 
         return res.json(scoredTeams);
