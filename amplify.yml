@@ -10,7 +10,7 @@ frontend:
       commands:
         - pnpm run build
   artifacts:
-    baseDirectory: meloy-judge-app/.next
+    baseDirectory: meloy-judge-app
     files:
       - '**/*'
   cache:
