@@ -2,8 +2,12 @@
  * Base API client for making HTTP requests
  */
 
-// Get API URL from Next.js env config
-const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+// Get API URL from Next.js env config (with fallback)
+const API_URL: string = process.env.NEXT_PUBLIC_API_URL || 'https://o90rhtv5j4.execute-api.us-east-1.amazonaws.com/prod';
+
+if (!process.env.NEXT_PUBLIC_API_URL) {
+    console.warn('NEXT_PUBLIC_API_URL not set, using fallback URL');
+}
 
 // Cache for the auth token
 let cachedToken: string | null = null;
@@ -34,6 +38,11 @@ async function getAuthToken(): Promise<string> {
 
     const data = await response.json();
     cachedToken = data.token;
+    
+    if (!cachedToken) {
+        throw new ApiError('No token received from server');
+    }
+    
     return cachedToken;
 }
 
