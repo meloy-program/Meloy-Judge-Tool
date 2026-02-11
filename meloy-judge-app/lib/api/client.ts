@@ -2,8 +2,8 @@
  * Base API client for making HTTP requests
  */
 
-// Call backend API directly from browser
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://o90rhtv5j4.execute-api.us-east-1.amazonaws.com/prod';
+// Get API URL from Next.js env config
+const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 // Cache for the auth token
 let cachedToken: string | null = null;
