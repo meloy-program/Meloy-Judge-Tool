@@ -1,11 +1,13 @@
 import { auth0 } from '@/lib/auth0';
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 
 export const dynamic = 'force-dynamic';
 
 async function handleProxy(req: NextRequest, path: string[], method: string) {
     try {
-        // Get Auth0 session - pass the request for cookie access
+        // Get Auth0 session using cookies helper for Amplify compatibility
+        const cookieStore = await cookies();
         const session = await auth0.getSession(req);
         
         if (!session?.user) {
@@ -52,9 +54,16 @@ async function handleProxy(req: NextRequest, path: string[], method: string) {
 
     } catch (error: any) {
         console.error('[Backend Proxy] Error:', error);
+        console.error('[Backend Proxy] Error stack:', error.stack);
+        console.error('[Backend Proxy] Error details:', {
+            message: error.message,
+            name: error.name,
+            cause: error.cause
+        });
         return NextResponse.json({ 
             error: 'Proxy error',
-            details: error.message 
+            details: error.message,
+            name: error.name
         }, { status: 500 });
     }
 }
