@@ -4,13 +4,13 @@ frontend:
     preBuild:
       commands:
         - cd meloy-judge-app
-        - corepack enable
+        - npm install -g pnpm
         - pnpm install --frozen-lockfile
     build:
       commands:
         - pnpm run build
   artifacts:
-    baseDirectory: meloy-judge-app
+    baseDirectory: meloy-judge-app/.next
     files:
       - '**/*'
   cache:
