@@ -1,8 +1,13 @@
 import { auth0 } from '@/lib/auth0';
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 export const dynamic = 'force-dynamic';
+
+// Initialize Lambda client
+const lambdaClient = new LambdaClient({ region: 'us-east-1' });
+const BACKEND_LAMBDA_NAME = 'meloy-judge-api';
 
 async function handleProxy(req: NextRequest, path: string[], method: string) {
     try {
@@ -33,12 +38,11 @@ async function handleProxy(req: NextRequest, path: string[], method: string) {
             }, { status: 401 });
         }
 
-        // Build backend URL with query parameters
+        // Build the path for Lambda
         const backendPath = path.join('/');
         const searchParams = req.nextUrl.searchParams.toString();
-        const apiUrl = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL;
-        const backendUrl = `${apiUrl}/${backendPath}${searchParams ? `?${searchParams}` : ''}`;
-        console.log('[Backend Proxy] Backend URL:', backendUrl);
+        const fullPath = `/${backendPath}${searchParams ? `?${searchParams}` : ''}`;
+        console.log('[Backend Proxy] Lambda path:', fullPath);
 
         // Get request body for non-GET requests
         let body = undefined;
@@ -47,23 +51,54 @@ async function handleProxy(req: NextRequest, path: string[], method: string) {
             body = text || undefined;
         }
 
-        // Forward request to Lambda with Auth0 ID token (JWT)
-        console.log('[Backend Proxy] Forwarding to Lambda...');
-        const response = await fetch(backendUrl, {
-            method,
+        // Create Lambda event payload (API Gateway format)
+        const lambdaEvent = {
+            version: '2.0',
+            routeKey: `${method} ${fullPath}`,
+            rawPath: fullPath,
+            rawQueryString: searchParams,
             headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${idToken}`,
+                'content-type': 'application/json',
+                'authorization': `Bearer ${idToken}`,
             },
-            body,
-        });
-        console.log('[Backend Proxy] Lambda response status:', response.status);
+            requestContext: {
+                http: {
+                    method,
+                    path: fullPath,
+                },
+            },
+            body: body || null,
+            isBase64Encoded: false,
+        };
 
-        // Parse response
-        const data = await response.json().catch(() => ({}));
-        console.log('[Backend Proxy] Returning response');
+        console.log('[Backend Proxy] Invoking Lambda directly...');
         
-        return NextResponse.json(data, { status: response.status });
+        // Invoke Lambda directly
+        const command = new InvokeCommand({
+            FunctionName: BACKEND_LAMBDA_NAME,
+            InvocationType: 'RequestResponse',
+            Payload: JSON.stringify(lambdaEvent),
+        });
+
+        const lambdaResponse = await lambdaClient.send(command);
+        console.log('[Backend Proxy] Lambda invoked, status:', lambdaResponse.StatusCode);
+
+        // Parse Lambda response
+        const responsePayload = JSON.parse(
+            new TextDecoder().decode(lambdaResponse.Payload)
+        );
+
+        // Extract status and body from Lambda response
+        const statusCode = responsePayload.statusCode || 200;
+        const responseBody = responsePayload.body 
+            ? (typeof responsePayload.body === 'string' 
+                ? JSON.parse(responsePayload.body) 
+                : responsePayload.body)
+            : {};
+
+        console.log('[Backend Proxy] Returning response, status:', statusCode);
+        
+        return NextResponse.json(responseBody, { status: statusCode });
 
     } catch (error: any) {
         console.error('[Backend Proxy] Error:', error);
