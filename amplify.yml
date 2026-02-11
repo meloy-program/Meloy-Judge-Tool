@@ -20,6 +20,7 @@ applications:
             - echo "AUTH0_SCOPE=$AUTH0_SCOPE" >> .env.production
             - echo "APP_BASE_URL=$APP_BASE_URL" >> .env.production
             - echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" >> .env.production
+            - echo "API_URL=$NEXT_PUBLIC_API_URL" >> .env.production
             - pnpm run build
       artifacts:
         baseDirectory: .next
