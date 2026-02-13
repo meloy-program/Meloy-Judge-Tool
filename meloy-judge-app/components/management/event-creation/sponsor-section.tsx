@@ -1,10 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Building2, Upload, Palette } from "lucide-react"
+import { Building2, Upload, Palette, FileImage, AlertCircle } from "lucide-react"
 
 interface SponsorSectionProps {
   sponsorName: string
@@ -31,9 +32,27 @@ export function SponsorSection({
   textColor,
   setTextColor,
 }: SponsorSectionProps) {
+  const [fileSize, setFileSize] = useState<number | null>(null)
+  const MAX_FILE_SIZE_MB = 5
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+  }
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      // Check file size
+      const fileSizeInMB = file.size / (1024 * 1024)
+      setFileSize(file.size)
+
+      if (fileSizeInMB > MAX_FILE_SIZE_MB) {
+        alert(`File size (${formatFileSize(file.size)}) exceeds the ${MAX_FILE_SIZE_MB}MB limit. Please choose a smaller image.`)
+        return
+      }
+
       const reader = new FileReader()
       reader.onloadend = () => {
         setSponsorLogo(reader.result as string)
@@ -77,22 +96,44 @@ export function SponsorSection({
             <Upload className="mr-2 inline h-4 w-4" />
             Sponsor Logo
           </Label>
-          <div className="flex items-center gap-6">
-            {sponsorLogo && (
-              <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-50 p-4 shadow-inner">
-                <Image src={sponsorLogo} alt="Sponsor Logo" width={96} height={96} className="h-full w-full object-contain" />
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-6">
+              {sponsorLogo && (
+                <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-50 p-4 shadow-inner">
+                  <Image src={sponsorLogo} alt="Sponsor Logo" width={96} height={96} className="h-full w-full object-contain" />
+                </div>
+              )}
+              <Label
+                htmlFor="logo-upload"
+                className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-4 transition-all hover:border-primary/40 hover:bg-primary/5"
+              >
+                <Upload className="h-5 w-5 text-primary" />
+                <span className="text-base font-semibold text-slate-700">
+                  {sponsorLogo ? "Change Logo" : "Upload Logo"}
+                </span>
+                <Input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              </Label>
+            </div>
+            
+            {/* File size indicator */}
+            <div className="flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+              <FileImage className="h-4 w-4 text-slate-500" />
+              <div className="flex-1 flex items-center justify-between gap-4">
+                <span className="text-sm text-slate-600">
+                  {fileSize ? (
+                    <>
+                      Current size: <span className="font-semibold text-slate-900">{formatFileSize(fileSize)}</span>
+                    </>
+                  ) : (
+                    "No file selected"
+                  )}
+                </span>
+                <div className="flex items-center gap-2 text-xs text-slate-500">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <span>Max {MAX_FILE_SIZE_MB}MB</span>
+                </div>
               </div>
-            )}
-            <Label
-              htmlFor="logo-upload"
-              className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-4 transition-all hover:border-primary/40 hover:bg-primary/5"
-            >
-              <Upload className="h-5 w-5 text-primary" />
-              <span className="text-base font-semibold text-slate-700">
-                {sponsorLogo ? "Change Logo" : "Upload Logo"}
-              </span>
-              <Input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-            </Label>
+            </div>
           </div>
         </div>
 

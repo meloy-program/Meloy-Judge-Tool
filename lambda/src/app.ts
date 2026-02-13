@@ -19,7 +19,7 @@ const app = express();
 
 // ==================== GLOBAL MIDDLEWARE ====================
 
-app.use(express.json());
+app.use(express.json({ limit: '5mb' })); // Increased limit to support image uploads (base64 encoded)
 app.use(cors());
 app.use(logging);
 

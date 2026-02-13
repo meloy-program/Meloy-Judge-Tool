@@ -110,18 +110,16 @@ export function JudgeProgressScreen({ eventId, judgeId, onBack, judgeName, isAdm
 
     // Get sponsor data with fallback logic
     const getSponsorData = () => {
-        const isPWSEvent = event?.event_type?.includes("problems-worth-solving") ?? false
-        
         return event?.sponsor_id && event.sponsor ? {
-            name: event.sponsor.name ?? "Sponsor",
-            logo: event.sponsor.logo_url ?? (isPWSEvent ? "/TAMUlogo.png" : "/ExxonLogo.png"),
-            primaryColor: event.sponsor.primary_color ?? (isPWSEvent ? "#500000" : "#b91c1c"),
-            secondaryColor: event.sponsor.secondary_color ?? (isPWSEvent ? "#3d0000" : "#7f1d1d")
+            name: event.sponsor.name ?? "Meloy Program",
+            logo: event.sponsor.logo_url ?? "/meloyprogrammaroon.png",
+            primaryColor: event.sponsor.primary_color ?? "#500000",
+            secondaryColor: event.sponsor.secondary_color ?? "#1f0000"
         } : {
-            name: isPWSEvent ? "Meloy Program" : "ExxonMobil",
-            logo: isPWSEvent ? "/TAMUlogo.png" : "/ExxonLogo.png",
-            primaryColor: isPWSEvent ? "#500000" : "#b91c1c",
-            secondaryColor: isPWSEvent ? "#3d0000" : "#7f1d1d"
+            name: "Meloy Program",
+            logo: "/meloyprogrammaroon.png",
+            primaryColor: "#500000",
+            secondaryColor: "#1f0000"
         }
     }
 
