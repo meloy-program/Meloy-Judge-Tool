@@ -10,4 +10,5 @@ export * from './scores';
 export * from './admin';
 export * from './sponsors';
 export * from './judges';
+export * from './users';
 export * from './client';

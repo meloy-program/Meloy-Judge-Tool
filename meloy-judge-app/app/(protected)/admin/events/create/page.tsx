@@ -28,11 +28,6 @@ export default function EventCreatePage() {
     router.push('/admin');
   };
 
-  const handleCreateEvent = () => {
-    // After creating event, go back to admin screen
-    router.push('/admin');
-  };
-
   // Only allow admin access
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -46,7 +41,6 @@ export default function EventCreatePage() {
   return (
     <EventCreationScreen
       onBack={handleBack}
-      onCreateEvent={handleCreateEvent}
     />
   );
 }

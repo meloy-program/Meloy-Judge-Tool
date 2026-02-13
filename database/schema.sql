@@ -19,7 +19,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255), -- Nullable for OAuth providers
     name VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'judge' CHECK (role IN ('judge', 'admin', 'moderator')),
+    role VARCHAR(20) NOT NULL DEFAULT 'member' CHECK (role IN ('member', 'judge', 'admin')),
     is_active BOOLEAN DEFAULT true,
     last_login TIMESTAMP,
     

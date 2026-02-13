@@ -35,12 +35,12 @@ export default function EventManagePage() {
   }, [auth0User]);
 
   const handleBack = () => {
-    router.push(`/events/${eventId}`);
+    router.back();
   };
 
   const handleSave = () => {
-    // After saving, go back to event detail
-    router.push(`/events/${eventId}`);
+    // After saving, go back to previous page
+    router.back();
   };
 
   // Only allow admin access

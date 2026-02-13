@@ -20,6 +20,7 @@ export interface Sponsor {
  * Create a new sponsor
  */
 export async function createSponsor(data: {
+    event_id: string;
     name: string;
     logo_url?: string | null;
     website_url?: string | null;

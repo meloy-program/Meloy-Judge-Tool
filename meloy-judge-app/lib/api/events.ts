@@ -56,7 +56,7 @@ export async function updateEvent(
  * Delete an event (admin only)
  */
 export async function deleteEvent(id: string): Promise<void> {
-    return del<void>(`/events/${id}`);
+    await del<void>(`/events/${id}`);
 }
 
 /**

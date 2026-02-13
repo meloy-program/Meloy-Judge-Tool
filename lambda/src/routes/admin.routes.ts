@@ -136,72 +136,6 @@ router.post('/migrate-judge-account', async (_req, res) => {
     }
 });
 
-/**
- * Set judge account for LANL Aggies Invent event
- * Sets abhivur@gmail.com as the judge account
- */
-router.post('/set-lanl-judge-account', async (_req, res) => {
-    try {
-        console.log('🔧 Setting judge account for LANL Aggies Invent...');
-
-        await transaction(async (client) => {
-            // Find the user with email abhivur@gmail.com
-            const user = await client.query(
-                'SELECT id, email, name, role FROM users WHERE email = $1',
-                ['abhivur@gmail.com']
-            );
-
-            if (user.rows.length === 0) {
-                throw new Error('User abhivur@gmail.com not found');
-            }
-
-            const userId = user.rows[0].id;
-            console.log(`Found user: ${user.rows[0].name} (${user.rows[0].email}), role: ${user.rows[0].role}`);
-
-            // Find the LANL Aggies Invent event (or Spring 2026 Aggies Invent)
-            const event = await client.query(
-                `SELECT id, name FROM events 
-                 WHERE name ILIKE '%aggies%invent%' 
-                 ORDER BY created_at DESC 
-                 LIMIT 1`
-            );
-
-            if (event.rows.length === 0) {
-                throw new Error('Aggies Invent event not found');
-            }
-
-            const eventId = event.rows[0].id;
-            const eventName = event.rows[0].name;
-            console.log(`Found event: ${eventName}`);
-
-            // Update the event to set the judge account
-            await client.query(
-                'UPDATE events SET judge_user_id = $1 WHERE id = $2',
-                [userId, eventId]
-            );
-
-            console.log(`✅ Set ${user.rows[0].email} as judge account for ${eventName}`);
-        });
-
-        res.json({ 
-            message: 'Judge account set successfully',
-            details: 'abhivur@gmail.com is now the judge account for LANL Aggies Invent'
-        });
-    } catch (error: any) {
-        console.error('❌ Set judge account error:', error);
-        res.status(500).json({ 
-            error: 'Failed to set judge account',
-            details: error.message
-        });
-    }
-});
-
-/**
- * Test endpoint to verify admin routes work
- */
-router.get('/test', async (_req, res) => {
-    res.json({ message: 'Admin routes are working!', timestamp: new Date().toISOString() });
-});
 
 /**
  * Initialize database schema
@@ -657,9 +591,6 @@ router.get('/activity', authenticate, requireRole(['admin']), async (_req, res) 
     }
 });
 
-export default router;
-
-
 /**
  * Add photo_url column to teams table
  */
@@ -711,70 +642,117 @@ router.post('/migrate-team-photo', async (_req, res) => {
 });
 
 /**
- * Sync judge profile user_ids with event judge accounts
- * Updates all judge profiles to use their event's dedicated judge account user_id
+ * Update user roles migration
+ * Changes role system from (judge, admin, moderator) to (member, judge, admin)
  */
-router.post('/sync-judge-profile-users', authenticate, requireRole(['admin']), async (_req, res): Promise<void> => {
+router.post('/migrate-user-roles', async (_req, res) => {
     try {
-        console.log('🔧 Starting judge profile user_id sync...');
+        console.log('🔧 Starting user roles migration...');
 
-        const result = await transaction(async (client) => {
-            // Get count of profiles that need updating
-            const beforeCount = await client.query(`
-                SELECT COUNT(*) as count
-                FROM event_judges ej
-                JOIN events e ON ej.event_id = e.id
-                WHERE e.judge_user_id IS NOT NULL 
-                AND ej.user_id != e.judge_user_id
+        await transaction(async (client) => {
+            // Check current constraint
+            const checkConstraint = await client.query(`
+                SELECT conname 
+                FROM pg_constraint 
+                WHERE conname = 'users_role_check' 
+                AND conrelid = 'users'::regclass
             `);
 
-            const profilesToUpdate = parseInt(beforeCount.rows[0].count);
-            console.log(`Found ${profilesToUpdate} judge profiles that need user_id updates`);
-
-            if (profilesToUpdate === 0) {
-                console.log('⚠️  All judge profiles already have correct user_ids');
-                return { profilesUpdated: 0, alreadySynced: true };
+            if (checkConstraint.rows.length === 0) {
+                console.log('⚠️  No role constraint found, creating new one...');
+            } else {
+                console.log('Dropping existing role constraint...');
+                await client.query('ALTER TABLE users DROP CONSTRAINT users_role_check');
             }
 
-            // Update all judge profiles to use their event's judge_user_id
-            const updateResult = await client.query(`
-                UPDATE event_judges 
-                SET user_id = (
-                    SELECT judge_user_id 
-                    FROM events 
-                    WHERE events.id = event_judges.event_id
-                )
-                WHERE EXISTS (
-                    SELECT 1 
-                    FROM events 
-                    WHERE events.id = event_judges.event_id 
-                    AND events.judge_user_id IS NOT NULL
-                )
+            // Update existing moderator users to admin
+            console.log('Converting moderator users to admin...');
+            const moderatorCount = await client.query(`
+                UPDATE users SET role = 'admin' WHERE role = 'moderator'
+            `);
+            console.log(`Converted ${moderatorCount.rowCount} moderator(s) to admin`);
+
+            // Change default role from 'judge' to 'member'
+            console.log('Updating default role to member...');
+            await client.query(`
+                ALTER TABLE users ALTER COLUMN role SET DEFAULT 'member'
             `);
 
-            console.log(`✅ Updated ${updateResult.rowCount} judge profiles with correct user_ids`);
-            return { profilesUpdated: updateResult.rowCount, alreadySynced: false };
-        });
+            // Add new CHECK constraint with updated roles
+            console.log('Adding new role constraint...');
+            await client.query(`
+                ALTER TABLE users ADD CONSTRAINT users_role_check 
+                CHECK (role IN ('member', 'judge', 'admin'))
+            `);
 
-        if (result.alreadySynced) {
+            // Get statistics
+            const stats = await client.query(`
+                SELECT 
+                    COUNT(*) as total_users,
+                    COUNT(CASE WHEN role = 'member' THEN 1 END) as members,
+                    COUNT(CASE WHEN role = 'judge' THEN 1 END) as judges,
+                    COUNT(CASE WHEN role = 'admin' THEN 1 END) as admins
+                FROM users
+            `);
+
+            console.log('✅ User roles migration completed successfully!');
+            console.log('Statistics:', stats.rows[0]);
+
             res.json({ 
-                message: 'All judge profiles already synced',
-                profilesUpdated: 0
+                message: 'User roles migration completed successfully',
+                changes: [
+                    'Removed moderator role',
+                    'Added member role',
+                    'Updated default role to member',
+                    'Converted existing moderators to admin'
+                ],
+                statistics: stats.rows[0]
             });
-            return;
-        }
-
-        res.json({ 
-            message: 'Judge profile user_ids synced successfully',
-            profilesUpdated: result.profilesUpdated,
-            details: 'All judge profiles now use their event\'s dedicated judge account user_id'
         });
     } catch (error: any) {
-        console.error('❌ Sync judge profile users error:', error);
+        console.error('❌ User roles migration error:', error);
         res.status(500).json({ 
-            error: 'Failed to sync judge profile user_ids',
-            details: error.message
+            error: 'Failed to run user roles migration',
+            details: error.message 
         });
     }
 });
 
+/**
+ * Delete test users
+ * TEMPORARY: Remove test accounts from database
+ */
+router.post('/delete-test-users', async (_req, res) => {
+    try {
+        console.log('🗑️  Deleting test users...');
+
+        const testEmails = [
+            'admin@tamu.edu',
+            'judges-hackathon@tamu.edu',
+            'moderator@tamu.edu'
+        ];
+
+        await transaction(async (client) => {
+            const result = await client.query(
+                'DELETE FROM users WHERE email = ANY($1) RETURNING email',
+                [testEmails]
+            );
+
+            console.log(`✅ Deleted ${result.rowCount} test users`);
+            
+            res.json({ 
+                message: 'Test users deleted successfully',
+                deleted: result.rows.map((r: any) => r.email),
+                count: result.rowCount
+            });
+        });
+    } catch (error: any) {
+        console.error('❌ Delete test users error:', error);
+        res.status(500).json({ 
+            error: 'Failed to delete test users',
+            details: error.message 
+        });
+    }
+});
+
+export default router;

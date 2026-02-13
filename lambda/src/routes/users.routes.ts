@@ -35,10 +35,10 @@ router.get('/', authenticate, requireRole(['admin']), async (_req, res) => {
 router.put('/:userId/role', authenticate, requireRole(['admin']), async (req, res) => {
     try {
         const { role } = req.body;
-        const validRoles = ['admin', 'moderator', 'judge', 'participant'];
+        const validRoles = ['admin', 'judge', 'member'];
 
         if (!validRoles.includes(role)) {
-            res.status(400).json({ error: 'Invalid role' });
+            res.status(400).json({ error: 'Invalid role. Must be one of: admin, judge, member' });
             return;
         }
 
@@ -47,8 +47,14 @@ router.put('/:userId/role', authenticate, requireRole(['admin']), async (req, re
             [role, req.params.userId]
         );
 
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
         res.json({ user });
     } catch (error) {
+        console.error('Failed to update user role:', error);
         res.status(500).json({ error: 'Failed to update user role' });
     }
 });

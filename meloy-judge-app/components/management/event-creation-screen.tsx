@@ -1,237 +1,182 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { useUser } from '@auth0/nextjs-auth0/client'
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  ArrowLeft,
-  Calendar,
-  MapPin,
-  Award,
-  Palette,
-  Upload,
-  Plus,
-  X,
-  Users,
-  Mail,
-  Sparkles,
-  Save,
-  Building2,
-  User,
-} from "lucide-react"
+import { ArrowLeft, Save, User, Loader2, Sparkles } from "lucide-react"
+import { EventDetailsSection } from "./event-creation/event-details-section"
+import { SponsorSection } from "./event-creation/sponsor-section"
+import { JudgeAccountSection } from "./event-creation/judge-account-section"
+import { createEvent, updateJudgeAccount } from "@/lib/api/events"
+import { createSponsor } from "@/lib/api/sponsors"
+import { getCurrentUser } from "@/lib/api"
+import { useToast } from "@/hooks/use-toast"
 
 interface EventCreationScreenProps {
   onBack: () => void
-  onCreateEvent: (eventId?: string) => void
 }
 
 type EventType = "aggies-invent" | "problems-worth-solving"
 
-interface JudgingAccount {
-  id: string
-  name: string
-  email: string
-}
-
-interface Judge {
-  id: string
-  name: string
-}
-
-interface TeamMember {
-  id: string
-  name: string
-  email: string
-}
-
-interface Team {
-  id: string
-  name: string
-  members: TeamMember[]
-}
-
-export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScreenProps) {
+export function EventCreationScreen({ onBack }: EventCreationScreenProps) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const { user: auth0User } = useUser()
+  
+  // Event Details State
   const [eventName, setEventName] = useState("")
   const [eventType, setEventType] = useState<EventType>("aggies-invent")
-  const [hasSponsor, setHasSponsor] = useState(true)
-  const [sponsorName, setSponsorName] = useState("Meloy Program")
-  const [sponsorLogo, setSponsorLogo] = useState<string | null>("/TAMUlogo.png")
-  const [primaryColor, setPrimaryColor] = useState("#500000")
-  const [secondaryColor, setSecondaryColor] = useState("#FFFFFF")
-  const [textColor, setTextColor] = useState("#FFFFFF")
-  const [eventDuration, setEventDuration] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [eventLocation, setEventLocation] = useState("")
   const [eventDescription, setEventDescription] = useState("")
 
-  // Determine if event is PWS (individual students) or team-based
-  const isPWSEvent = eventType === "problems-worth-solving"
-  const participantLabel = isPWSEvent ? "Student" : "Team"
-  const participantsLabel = isPWSEvent ? "Students" : "Teams"
+  // Sponsor State
+  const [sponsorName, setSponsorName] = useState("Meloy Program")
+  const [sponsorLogo, setSponsorLogo] = useState<string | null>("/meloyprogrammaroon.png")
+  const [primaryColor, setPrimaryColor] = useState("#500000")
+  const [secondaryColor, setSecondaryColor] = useState("#1f0000")
+  const [textColor, setTextColor] = useState("#FFFFFF")
 
-  // Mock judging accounts - in production, this would come from your backend
-  const availableJudgingAccounts: JudgingAccount[] = [
-    { id: "1", name: "Dr. Sarah Johnson", email: "sjohnson@tamu.edu" },
-    { id: "2", name: "Prof. Michael Chen", email: "mchen@tamu.edu" },
-    { id: "3", name: "Dr. Emily Rodriguez", email: "erodriguez@tamu.edu" },
-    { id: "4", name: "Dr. James Anderson", email: "janderson@tamu.edu" },
-    { id: "5", name: "Prof. Lisa Martinez", email: "lmartinez@tamu.edu" },
-    { id: "6", name: "Dr. Robert Thompson", email: "rthompson@tamu.edu" },
-    { id: "7", name: "Dr. Jennifer Lee", email: "jlee@tamu.edu" },
-    { id: "8", name: "Prof. David Brown", email: "dbrown@tamu.edu" },
-    { id: "9", name: "Dr. Maria Garcia", email: "mgarcia@tamu.edu" },
-    { id: "10", name: "Dr. William Taylor", email: "wtaylor@tamu.edu" },
-    { id: "11", name: "Prof. Patricia Wilson", email: "pwilson@tamu.edu" },
-    { id: "12", name: "Dr. Christopher Moore", email: "cmoore@tamu.edu" },
-  ]
+  // Judge Account State
+  const [selectedJudgeEmail, setSelectedJudgeEmail] = useState<string | null>(null)
 
-  const [selectedJudgingAccount, setSelectedJudgingAccount] = useState<JudgingAccount | null>(null)
-  const [judges, setJudges] = useState<Judge[]>([])
-  const [newJudgeName, setNewJudgeName] = useState("")
+  // User State
+  const [userRole, setUserRole] = useState<string>('admin')
 
-  const [teams, setTeams] = useState<Team[]>([])
-  const [newTeamName, setNewTeamName] = useState("")
-  const [newMemberName, setNewMemberName] = useState("")
-  const [newMemberEmail, setNewMemberEmail] = useState("")
-  const [tempMembers, setTempMembers] = useState<TeamMember[]>([])
+  // UI State
+  const [isCreating, setIsCreating] = useState(false)
 
-  // For PWS: student inputs
-  const [newStudentName, setNewStudentName] = useState("")
-  const [newStudentEmail, setNewStudentEmail] = useState("")
-
-  const eventTypes = [
-    { value: "aggies-invent", label: "Aggies Invent", logo: "/aggiesinvent.png" },
-    { value: "problems-worth-solving", label: "Problems Worth Solving", logo: "/pws.png" },
-  ]
-
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setSponsorLogo(reader.result as string)
+  // Fetch user data
+  useEffect(() => {
+    async function fetchUserData() {
+      try {
+        const userData = await getCurrentUser()
+        setUserRole(userData.user.role || 'admin')
+      } catch (err) {
+        console.error('Failed to fetch user data:', err)
       }
-      reader.readAsDataURL(file)
     }
-  }
+    fetchUserData()
+  }, [])
 
-  const addJudge = () => {
-    if (newJudgeName) {
-      setJudges([...judges, { id: Date.now().toString(), name: newJudgeName }])
-      setNewJudgeName("")
-    }
-  }
+  // Get user name from Auth0 or fallback
+  const userName = auth0User?.name || auth0User?.email?.split('@')[0] || 'Admin'
 
-  const removeJudge = (id: string) => {
-    setJudges(judges.filter((judge) => judge.id !== id))
-  }
+  const handleSubmit = async () => {
+    try {
+      setIsCreating(true)
 
-  const addMemberToTemp = () => {
-    if (newMemberName && newMemberEmail) {
-      setTempMembers([...tempMembers, { id: Date.now().toString(), name: newMemberName, email: newMemberEmail }])
-      setNewMemberName("")
-      setNewMemberEmail("")
-    }
-  }
+      // Validate required fields
+      if (!eventName || !startDate || !endDate || !eventLocation || !selectedJudgeEmail) {
+        toast({
+          title: "Missing Required Fields",
+          description: "Please fill in event name, dates, location, and select a judge account",
+          variant: "destructive",
+        })
+        return
+      }
 
-  const removeMemberFromTemp = (id: string) => {
-    setTempMembers(tempMembers.filter((member) => member.id !== id))
-  }
+      // Step 1: Create the event
+      const { event } = await createEvent({
+        name: eventName,
+        event_type: eventType,
+        start_date: new Date(startDate).toISOString(),
+        end_date: new Date(endDate).toISOString(),
+        location: eventLocation,
+        description: eventDescription || "",
+      })
 
-  const addTeam = () => {
-    if (newTeamName && tempMembers.length > 0) {
-      setTeams([...teams, { id: Date.now().toString(), name: newTeamName, members: [...tempMembers] }])
-      setNewTeamName("")
-      setTempMembers([])
-    }
-  }
+      // Step 2: Set the judge account for the event
+      await updateJudgeAccount(event.id, selectedJudgeEmail)
 
-  // For PWS: Add individual student (creates a "team" with 1 member)
-  const addStudent = () => {
-    if (newStudentName && newStudentEmail) {
-      setTeams([
-        ...teams,
-        {
-          id: Date.now().toString(),
-          name: newStudentName,
-          members: [{ id: Date.now().toString(), name: newStudentName, email: newStudentEmail }],
+      // Step 3: Create sponsor (always create sponsor with event)
+      const { sponsor } = await createSponsor({
+        event_id: event.id,
+        name: sponsorName,
+        logo_url: sponsorLogo,
+        primary_color: primaryColor,
+        secondary_color: secondaryColor,
+        text_color: textColor,
+      })
+
+      // Step 4: Update event with sponsor_id
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events/${event.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await (await fetch('/api/token')).json().then(d => d.token)}`,
         },
-      ])
-      setNewStudentName("")
-      setNewStudentEmail("")
+        body: JSON.stringify({ sponsor_id: sponsor.id }),
+      })
+
+      // Step 5: Navigate back to admin page with success message
+      router.push(`/admin?success=true&eventName=${encodeURIComponent(eventName)}`)
+    } catch (error) {
+      console.error("Failed to create event:", error)
+      toast({
+        title: "Failed to Create Event",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive",
+      })
+    } finally {
+      setIsCreating(false)
     }
   }
 
-  const removeTeam = (id: string) => {
-    setTeams(teams.filter((team) => team.id !== id))
-  }
-
-  const handleSubmit = () => {
-    // Here you would typically send the data to your backend
-    console.log({
-      eventName,
-      eventType,
-      sponsorName,
-      sponsorLogo,
-      primaryColor,
-      secondaryColor,
-      eventDuration,
-      eventLocation,
-      eventDescription,
-      selectedJudgingAccount,
-      judges,
-      teams,
-    })
-    // Generate a temporary event ID (in production, this would come from backend)
-    const newEventId = Date.now().toString()
-    onCreateEvent(newEventId)
-  }
+  const isFormValid = eventName && startDate && endDate && eventLocation && selectedJudgeEmail
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-white to-primary/5">
-      <header className="relative z-30 overflow-hidden border-b bg-linear-to-b from-primary to-[#3d0000] shadow-xl backdrop-blur-sm">
+      <header className="relative overflow-hidden border-b bg-linear-to-b from-primary to-[#3d0000] shadow-xl backdrop-blur-sm">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAzIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-30" />
-        <div className="relative mx-auto max-w-7xl px-6 py-4 lg:px-8">
-          <div className="flex items-center justify-between gap-4 lg:gap-6">
-            <div className="flex items-center gap-4 lg:gap-5">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 py-3 sm:py-4 lg:px-8">
+          {/* Main Header Row - Always one line */}
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            {/* Left Side: Back Button + Logo */}
+            <div className="flex items-center gap-2 sm:gap-3 lg:gap-4 shrink-0">
               <Button
                 variant="ghost"
                 onClick={onBack}
-                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 border-white/30 bg-white/10 text-white shadow-lg backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/20"
               >
-                <ArrowLeft className="h-7 w-7" />
+                <ArrowLeft className="h-6 w-6" />
               </Button>
-              <div className="flex h-16 lg:h-20 w-auto items-center justify-center rounded-xl border border-white/25 bg-white/15 px-3 py-2 shadow-md backdrop-blur-md">
-                <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-12 lg:h-16 w-auto object-contain" />
-              </div>
-              <div>
-                <h1 className="text-2xl lg:text-3xl font-semibold text-white leading-tight">
-                  Launch New Event
-                </h1>
-                <p className="text-sm text-white/85">Configure the foundation for your next judging cohort.</p>
+              <div className="flex h-14 sm:h-16 lg:h-20 xl:h-20 w-auto shrink-0 items-center justify-center rounded-xl border border-white/25 bg-white/15 px-2 sm:px-3 py-2 shadow-md backdrop-blur-md">
+                <Image src="/meloyprogram.png" alt="Meloy Program Judging Portal" width={160} height={64} className="h-10 sm:h-12 lg:h-14 xl:h-16 w-auto object-contain" />
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              {/* User Profile */}
-              <div className="hidden sm:flex items-center gap-3 rounded-full border-2 border-white/30 bg-white/10 px-4 py-2 shadow-lg backdrop-blur-sm">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
+
+            {/* Center: Title (hidden on mobile, shown on larger screens) */}
+            <div className="hidden md:flex flex-col items-center flex-1 min-w-0 px-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-6 lg:h-7 xl:h-8 w-6 lg:w-7 xl:w-8 text-white opacity-60" />
+                <h1 className="text-2xl lg:text-3xl xl:text-4xl font-semibold text-white leading-tight text-center truncate">Event Creator</h1>
+              </div>
+            </div>
+
+            {/* Right Side: User Profile */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* User Profile - Always visible */}
+              <div className="flex items-center gap-2 sm:gap-3 rounded-full border-2 border-white/30 bg-white/10 px-3 sm:px-4 py-2 shadow-lg backdrop-blur-sm">
+                <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 border-white/50 bg-white/20">
                   <User className="h-5 w-5 text-white" />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-white leading-tight">Prof. Michael Chen</span>
-                  <span className="text-xs text-white/70">Admin</span>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-semibold text-white leading-tight truncate">{userName}</span>
+                  <span className="text-xs text-white/70 capitalize truncate">{userRole}</span>
                 </div>
               </div>
-              
-              <Badge variant="secondary" className="hidden items-center gap-2 rounded-full border border-white/30 bg-white/15 px-4 py-2 text-xs font-medium uppercase tracking-[0.12em] text-white sm:flex">
-                <Sparkles className="h-3.5 w-3.5" />
-                Draft Mode
-              </Badge>
+            </div>
+          </div>
+
+          {/* Mobile Title - Centered Below */}
+          <div className="md:hidden mt-3 flex flex-col items-center text-center">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-white opacity-60" />
+              <h1 className="text-xl font-semibold text-white leading-tight">Event Creator</h1>
             </div>
           </div>
         </div>
@@ -240,661 +185,48 @@ export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScre
       <main className="relative mx-auto max-w-7xl px-6 py-5 lg:py-6 lg:px-8">
         <div className="space-y-10">
           {/* Event Details Section */}
-          <Card className="relative overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/95 shadow-lg">
-            <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-rose-400 to-orange-300 opacity-70" />
-            <CardHeader className="p-8 pb-6">
-              <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-slate-900">
-                <Calendar className="h-6 w-6 text-primary" />
-                Event Details
-              </CardTitle>
-              <CardDescription className="text-base text-slate-600">
-                Capture the core attributes that define your event experience.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 p-8 pt-0">
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="event-name" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Event Name
-                  </Label>
-                  <Input
-                    id="event-name"
-                    placeholder="e.g., Aggies Invent Spring 2025"
-                    value={eventName}
-                    onChange={(e) => setEventName(e.target.value)}
-                    className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Event Type</Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    {eventTypes.map((type) => {
-                      return (
-                        <button
-                          key={type.value}
-                          onClick={() => setEventType(type.value as EventType)}
-                          className={`flex items-center justify-center rounded-xl border-2 p-6 transition-all ${
-                            eventType === type.value
-                              ? "border-primary/50 bg-primary/10 shadow-md"
-                              : "border-slate-200 bg-white hover:border-primary/30 hover:bg-primary/5"
-                          }`}
-                        >
-                          <Image
-                            src={type.logo}
-                            alt={type.label}
-                            width={180}
-                            height={60}
-                            className="object-contain"
-                            style={{
-                              filter: eventType === type.value 
-                                ? "none"
-                                : "grayscale(100%) opacity(0.5)",
-                            }}
-                          />
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
-              </div>
+          <EventDetailsSection
+            eventName={eventName}
+            setEventName={setEventName}
+            eventType={eventType}
+            setEventType={setEventType}
+            startDate={startDate}
+            setStartDate={setStartDate}
+            endDate={endDate}
+            setEndDate={setEndDate}
+            eventLocation={eventLocation}
+            setEventLocation={setEventLocation}
+            eventDescription={eventDescription}
+            setEventDescription={setEventDescription}
+          />
 
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="event-duration" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Event Duration
-                  </Label>
-                  <Input
-                    id="event-duration"
-                    type="text"
-                    placeholder="e.g., March 15-17, 2025"
-                    value={eventDuration}
-                    onChange={(e) => setEventDuration(e.target.value)}
-                    className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="event-location" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Event Location
-                  </Label>
-                  <Input
-                    id="event-location"
-                    placeholder="e.g., Zachry Engineering Center"
-                    value={eventLocation}
-                    onChange={(e) => setEventLocation(e.target.value)}
-                    className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="event-description" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Event Description
-                </Label>
-                <Textarea
-                  id="event-description"
-                  placeholder="Provide a brief overview of what this event is about..."
-                  value={eventDescription}
-                  onChange={(e) => setEventDescription(e.target.value)}
-                  rows={4}
-                  className="rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Judge Account Section */}
+          <JudgeAccountSection
+            selectedJudgeEmail={selectedJudgeEmail}
+            onSelectJudge={setSelectedJudgeEmail}
+          />
 
           {/* Sponsor Branding Section */}
-          <Card className="overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/90 shadow-xl backdrop-blur-sm">
-            <CardHeader className="border-b border-slate-100 bg-linear-to-br from-slate-50 to-white p-8">
-              <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-slate-900">
-                <Building2 className="h-6 w-6 text-primary" />
-                Title Sponsor
-              </CardTitle>
-              <CardDescription className="text-base text-slate-600">
-                Manage sponsor branding and appearance
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 p-8">
-              {/* Sponsor Toggle */}
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Sponsor Configuration
-                </Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => setHasSponsor(true)}
-                    className={`flex items-center justify-center gap-3 rounded-xl border-2 p-4 transition-all ${
-                      hasSponsor
-                        ? "border-primary/50 bg-primary/10 shadow-md"
-                        : "border-slate-200 bg-white hover:border-primary/30 hover:bg-primary/5"
-                    }`}
-                  >
-                    <Building2 className={`h-5 w-5 ${hasSponsor ? "text-primary" : "text-slate-400"}`} />
-                    <span className={`text-base font-semibold ${hasSponsor ? "text-primary" : "text-slate-600"}`}>
-                      Has Sponsor
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setHasSponsor(false)}
-                    className={`flex items-center justify-center gap-3 rounded-xl border-2 p-4 transition-all ${
-                      !hasSponsor
-                        ? "border-primary/50 bg-primary/10 shadow-md"
-                        : "border-slate-200 bg-white hover:border-primary/30 hover:bg-primary/5"
-                    }`}
-                  >
-                    <X className={`h-5 w-5 ${!hasSponsor ? "text-primary" : "text-slate-400"}`} />
-                    <span className={`text-base font-semibold ${!hasSponsor ? "text-primary" : "text-slate-600"}`}>
-                      No Sponsor
-                    </span>
-                  </button>
-                </div>
-              </div>
+          <SponsorSection
+            sponsorName={sponsorName}
+            setSponsorName={setSponsorName}
+            sponsorLogo={sponsorLogo}
+            setSponsorLogo={setSponsorLogo}
+            primaryColor={primaryColor}
+            setPrimaryColor={setPrimaryColor}
+            secondaryColor={secondaryColor}
+            setSecondaryColor={setSecondaryColor}
+            textColor={textColor}
+            setTextColor={setTextColor}
+          />
 
-              {hasSponsor && (
-              <>
-                <div className="space-y-3">
-                  <Label htmlFor="sponsor-name" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
-                    Sponsor Name
-                  </Label>
-                  <Input
-                    id="sponsor-name"
-                    value={sponsorName}
-                    onChange={(e) => setSponsorName(e.target.value)}
-                    placeholder="e.g., Texas A&M Engineering"
-                    className="h-12 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
-                  />
-                </div>
-
-                <div className="space-y-3">
-                <Label className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
-                  <Upload className="mr-2 inline h-4 w-4" />
-                  Sponsor Logo
-                </Label>
-                <div className="flex items-center gap-6">
-                  {sponsorLogo && (
-                    <div className="flex h-32 w-32 items-center justify-center overflow-hidden rounded-xl border-2 border-slate-200 bg-slate-50 p-4 shadow-inner">
-                      <Image src={sponsorLogo} alt="Sponsor Logo" width={96} height={96} className="h-full w-full object-contain" />
-                    </div>
-                  )}
-                  <Label
-                    htmlFor="logo-upload"
-                    className="flex cursor-pointer items-center gap-3 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-4 transition-all hover:border-primary/40 hover:bg-primary/5"
-                  >
-                    <Upload className="h-5 w-5 text-primary" />
-                    <span className="text-base font-semibold text-slate-700">
-                      {sponsorLogo ? "Change Logo" : "Upload Logo"}
-                    </span>
-                    <Input id="logo-upload" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                  </Label>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-3">
-                <div className="space-y-3">
-                  <Label htmlFor="primary-color" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
-                    <Palette className="mr-2 inline h-4 w-4" />
-                    Primary Color
-                  </Label>
-                  <div className="flex items-center gap-3">
-                    <Input
-                      id="primary-color"
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 p-1 shadow-inner"
-                    />
-                    <Input
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-12 flex-1 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="secondary-color" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
-                    <Palette className="mr-2 inline h-4 w-4" />
-                    Secondary Color
-                  </Label>
-                  <div className="flex items-center gap-3">
-                    <Input
-                      id="secondary-color"
-                      type="color"
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 p-1 shadow-inner"
-                    />
-                    <Input
-                      value={secondaryColor}
-                      onChange={(e) => setSecondaryColor(e.target.value)}
-                      className="h-12 flex-1 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="text-color" className="text-base font-semibold uppercase tracking-[0.15em] text-slate-700">
-                    <Palette className="mr-2 inline h-4 w-4" />
-                    Text Color
-                  </Label>
-                  <div className="flex items-center gap-3">
-                    <Input
-                      id="text-color"
-                      type="color"
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
-                      className="h-12 w-20 cursor-pointer rounded-xl border-slate-200 p-1 shadow-inner"
-                    />
-                    <Input
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
-                      className="h-12 flex-1 rounded-xl border-slate-200 px-4 text-lg shadow-inner"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
-                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Live Preview</p>
-                <div className="relative overflow-hidden rounded-3xl border-2 border-red-950 shadow-xl">
-                  <div 
-                    className="relative rounded-[22px] py-4 px-5 lg:py-5 lg:px-6"
-                    style={{
-                      background: `linear-gradient(to bottom, ${primaryColor}, ${secondaryColor})`,
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS1vcGFjaXR5PSIwLjAyIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-20" />
-                    
-                    <div className="relative flex items-center justify-between">
-                      <div className="group relative flex items-center gap-5 lg:gap-6">
-                        <div className="relative flex shrink-0 items-center justify-center rounded-2xl py-3 px-6 lg:py-4 lg:px-8 shadow-xl backdrop-blur-xl bg-white/70 border-2 border-white/80">
-                          {sponsorLogo ? (
-                            <Image
-                              src={sponsorLogo}
-                              alt={sponsorName || 'Sponsor'}
-                              width={120}
-                              height={60}
-                              className="relative h-14 lg:h-16 w-auto max-w-45 lg:max-w-60 object-contain"
-                            />
-                          ) : (
-                            <div className="h-14 w-32 flex items-center justify-center text-slate-400 text-sm">No logo</div>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.12em]" style={{ color: `${textColor}CC` }}>Presented by</p>
-                          <p className="text-xl lg:text-2xl font-semibold leading-tight" style={{ color: textColor }}>{sponsorName || 'Sponsor Name'}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 rounded-full border-2 border-white/70 bg-white/70 backdrop-blur-xl px-4 py-2 shadow-xl">
-                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-sm font-semibold text-emerald-700">Judging in Progress</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              </>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Judging Account Section */}
-          <Card className="relative overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/95 shadow-lg">
-            <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-rose-400 to-orange-300 opacity-70" />
-            <CardHeader className="p-8 pb-6">
-              <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-slate-900">
-                <Users className="h-6 w-6 text-primary" />
-                Judging Account
-              </CardTitle>
-              <CardDescription className="text-base text-slate-600">
-                Select the primary judging account for this event and add judges who will evaluate teams.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 p-8 pt-0">
-              {/* Account Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                  Primary Judging Account
-                </Label>
-                <div className="max-h-100 overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
-                  <div className="grid gap-3">
-                    {availableJudgingAccounts.map((account) => (
-                      <button
-                        key={account.id}
-                        onClick={() => setSelectedJudgingAccount(account)}
-                        className={`flex items-center justify-between rounded-2xl border-2 p-5 text-left transition-all ${
-                          selectedJudgingAccount?.id === account.id
-                            ? "border-primary/50 bg-primary/10 shadow-md"
-                            : "border-slate-200 bg-white hover:border-primary/30 hover:bg-primary/5"
-                        }`}
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                            <Users className="h-6 w-6 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-base font-semibold text-slate-900">{account.name}</p>
-                            <p className="flex items-center gap-2 text-sm text-slate-600">
-                              <Mail className="h-3 w-3" />
-                              {account.email}
-                            </p>
-                          </div>
-                        </div>
-                        {selectedJudgingAccount?.id === account.id && (
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary">
-                            <svg
-                              className="h-4 w-4 text-white"
-                              fill="none"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path d="M5 13l4 4L19 7" />
-                            </svg>
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Judge List - Only show if account is selected */}
-              {selectedJudgingAccount && (
-                <>
-                  <div className="h-px bg-slate-200" />
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        Add Judges for {selectedJudgingAccount.name}
-                      </Label>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-                      <div className="space-y-2">
-                        <Input
-                          id="judge-name"
-                          placeholder="Enter judge name"
-                          value={newJudgeName}
-                          onChange={(e) => setNewJudgeName(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault()
-                              addJudge()
-                            }
-                          }}
-                          className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                        />
-                      </div>
-                      <div className="flex items-end">
-                        <Button
-                          onClick={addJudge}
-                          disabled={!newJudgeName}
-                          className="h-12 rounded-xl bg-primary px-6 text-base font-semibold shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
-                        >
-                          <Plus className="mr-2 h-5 w-5" />
-                          Add
-                        </Button>
-                      </div>
-                    </div>
-
-                    {judges.length > 0 ? (
-                      <div className="space-y-3">
-                        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                          Added Judges ({judges.length})
-                        </p>
-                        <div className="space-y-3">
-                          {judges.map((judge) => (
-                            <div
-                              key={judge.id}
-                              className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-slate-50/70 px-5 py-4"
-                            >
-                              <div className="flex items-center gap-4">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                                  <Users className="h-5 w-5 text-primary" />
-                                </div>
-                                <div>
-                                  <p className="text-base font-semibold text-slate-900">{judge.name}</p>
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeJudge(judge.id)}
-                                className="h-9 w-9 rounded-full text-destructive hover:bg-destructive/10"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 py-8 text-center">
-                        <Users className="mb-3 h-10 w-10 text-slate-300" />
-                        <p className="text-sm font-semibold text-slate-600">No judges added yet</p>
-                        <p className="text-xs text-slate-500">Add judges using the form above</p>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Prompt to select account */}
-              {!selectedJudgingAccount && (
-                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 py-12 text-center">
-                  <Users className="mb-4 h-12 w-12 text-slate-300" />
-                  <p className="text-base font-semibold text-slate-600">Select a judging account</p>
-                  <p className="text-sm text-slate-500">Choose an account above to start adding judges</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Team/Student Creation Section */}
-          <Card className="relative overflow-hidden rounded-[28px] border border-slate-200/70 bg-white/95 shadow-lg">
-            <div className="absolute inset-x-0 top-0 h-1 bg-linear-to-r from-primary via-rose-400 to-orange-300 opacity-70" />
-            <CardHeader className="p-8 pb-6">
-              <CardTitle className="flex items-center gap-3 text-2xl font-semibold text-slate-900">
-                {isPWSEvent ? <User className="h-6 w-6 text-primary" /> : <Award className="h-6 w-6 text-primary" />}
-                {participantLabel} Creation
-              </CardTitle>
-              <CardDescription className="text-base text-slate-600">
-                {isPWSEvent 
-                  ? "Register individual students who will present in this event."
-                  : "Register teams and their members who will compete in this event."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 p-8 pt-0">
-              {isPWSEvent ? (
-                /* PWS Student Creation Form */
-                <div className="space-y-4">
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="student-name" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        Student Name
-                      </Label>
-                      <Input
-                        id="student-name"
-                        placeholder="e.g., John Smith"
-                        value={newStudentName}
-                        onChange={(e) => setNewStudentName(e.target.value)}
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="student-email" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                        Student Email
-                      </Label>
-                      <Input
-                        id="student-email"
-                        placeholder="e.g., student@tamu.edu"
-                        value={newStudentEmail}
-                        onChange={(e) => setNewStudentEmail(e.target.value)}
-                        type="email"
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            addStudent()
-                          }
-                        }}
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    onClick={addStudent}
-                    disabled={!newStudentName || !newStudentEmail}
-                    className="h-12 w-full rounded-xl bg-primary px-6 text-base font-semibold shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
-                  >
-                    <Plus className="mr-2 h-5 w-5" />
-                    Add Student
-                  </Button>
-                </div>
-              ) : (
-                /* Team Creation Form */
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="team-name" className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Team Name
-                    </Label>
-                    <Input
-                      id="team-name"
-                      placeholder="e.g., Team Alpha"
-                      value={newTeamName}
-                      onChange={(e) => setNewTeamName(e.target.value)}
-                      className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                    />
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200/70 bg-slate-50/70 p-6">
-                    <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Team Members</p>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <Input
-                        placeholder="Member name"
-                        value={newMemberName}
-                        onChange={(e) => setNewMemberName(e.target.value)}
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                      />
-                      <Input
-                        placeholder="Member email"
-                        value={newMemberEmail}
-                        onChange={(e) => setNewMemberEmail(e.target.value)}
-                        type="email"
-                        onKeyPress={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault()
-                            addMemberToTemp()
-                          }
-                        }}
-                        className="h-12 rounded-xl border-slate-200 bg-white px-4 text-base shadow-inner focus-visible:border-primary/60"
-                      />
-                    </div>
-                    <Button
-                      onClick={addMemberToTemp}
-                      disabled={!newMemberName || !newMemberEmail}
-                      variant="outline"
-                      className="mt-4 h-12 rounded-xl border-slate-200 px-6 text-base font-semibold disabled:opacity-50"
-                    >
-                      <Plus className="mr-2 h-5 w-5" />
-                      Add Member
-                    </Button>
-
-                  {tempMembers.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                      {tempMembers.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center justify-between rounded-xl border border-slate-200/70 bg-white px-4 py-3"
-                        >
-                          <div>
-                            <p className="text-sm font-semibold text-slate-900">{member.name}</p>
-                            <p className="text-xs text-slate-600">{member.email}</p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeMemberFromTemp(member.id)}
-                            className="h-8 w-8 rounded-lg p-0 text-destructive hover:bg-destructive/10"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                  <Button
-                    onClick={addTeam}
-                    disabled={!newTeamName || tempMembers.length === 0}
-                    className="h-12 w-full rounded-xl bg-primary px-6 text-base font-semibold shadow-lg transition-transform hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50"
-                  >
-                    <Plus className="mr-2 h-5 w-5" />
-                    Add Team
-                  </Button>
-                </div>
-              )}
-
-              {teams.length > 0 ? (
-                <div className="space-y-3">
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Added {participantsLabel} ({teams.length})
-                  </p>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    {teams.map((team) => (
-                      <div
-                        key={team.id}
-                        className="relative overflow-hidden rounded-2xl border border-slate-200/70 bg-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
-                      >
-                        <div className="absolute inset-x-0 top-0 h-0.5 bg-linear-to-r from-primary via-rose-400 to-orange-300 opacity-70" />
-                        <div className="p-5">
-                          <div className="mb-3 flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                                {isPWSEvent ? <User className="h-5 w-5 text-primary" /> : <Award className="h-5 w-5 text-primary" />}
-                              </div>
-                              <h4 className="text-lg font-semibold text-slate-900">{team.name}</h4>
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeTeam(team.id)}
-                              className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                          {!isPWSEvent && (
-                            <div className="flex flex-wrap gap-2">
-                              {team.members.map((member) => (
-                                <Badge
-                                  key={member.id}
-                                  variant="secondary"
-                                  className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700"
-                                >
-                                  {member.name}
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 py-12 text-center">
-                  {isPWSEvent ? <User className="mb-4 h-12 w-12 text-slate-300" /> : <Award className="mb-4 h-12 w-12 text-slate-300" />}
-                  <p className="text-base font-semibold text-slate-600">No {participantsLabel.toLowerCase()} added yet</p>
-                  <p className="text-sm text-slate-500">Add your first {participantLabel.toLowerCase()} above</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Note: Judge Profiles and Teams will be added in the Event Manager after creation */}
+          <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-8 text-center">
+            <p className="text-base font-semibold text-slate-600">Judge Profiles and Teams</p>
+            <p className="text-sm text-slate-500 mt-2">
+              After creating the event, you can add judge profiles and teams in the Event Manager
+            </p>
+          </div>
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-4 sm:flex-row">
@@ -907,10 +239,20 @@ export function EventCreationScreen({ onBack, onCreateEvent }: EventCreationScre
             </Button>
             <Button
               onClick={handleSubmit}
-              className="h-14 flex-1 rounded-2xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
+              disabled={!isFormValid || isCreating}
+              className="h-14 flex-1 rounded-2xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Save className="mr-2 h-6 w-6" />
-              Create Event
+              {isCreating ? (
+                <>
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                  Creating Event...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-6 w-6" />
+                  Create Event
+                </>
+              )}
             </Button>
           </div>
         </div>
