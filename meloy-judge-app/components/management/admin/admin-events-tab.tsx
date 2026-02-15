@@ -134,11 +134,13 @@ export function AdminEventsTab({ onCreateEvent, onManageEvent }: AdminEventsTabP
     return event.sponsor_id && event.sponsor ? {
       name: event.sponsor.name ?? "Meloy Program",
       logo: event.sponsor.logo_url ?? "/meloyprogrammaroon.png",
+      textColor: event.sponsor.text_color ?? "#FFFFFF",
       primaryColor: event.sponsor.primary_color ?? "#500000",
       secondaryColor: event.sponsor.secondary_color ?? "#1f0000"
     } : {
       name: "Meloy Program",
       logo: "/meloyprogrammaroon.png",
+      textColor: "#FFFFFF",
       primaryColor: "#500000",
       secondaryColor: "#1f0000"
     }
@@ -227,8 +229,8 @@ export function AdminEventsTab({ onCreateEvent, onManageEvent }: AdminEventsTabP
                         />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-[10px] uppercase tracking-[0.12em] text-white/70">Presented by</p>
-                        <p className="text-base font-semibold text-white leading-tight">{sponsor.name}</p>
+                        <p className="text-[10px] uppercase tracking-[0.12em]" style={{ color: `${sponsor.textColor}CC` }}>Presented by</p>
+                        <p className="text-base font-semibold leading-tight" style={{ color: sponsor.textColor }}>{sponsor.name}</p>
                       </div>
                     </div>
                   </div>
@@ -243,21 +245,21 @@ export function AdminEventsTab({ onCreateEvent, onManageEvent }: AdminEventsTabP
                             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
                           </span>
-                          <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/80">Active</span>
+                          <span className="text-[11px] font-medium uppercase tracking-[0.15em]" style={{ color: `${sponsor.textColor}DD` }}>Active</span>
                         </>
                       ) : event.status === "completed" || event.status === "ended" ? (
                         <>
                           <span className="relative flex h-2 w-2">
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-slate-400" />
                           </span>
-                          <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/80 capitalize">{event.status}</span>
+                          <span className="text-[11px] font-medium uppercase tracking-[0.15em] capitalize" style={{ color: `${sponsor.textColor}DD` }}>{event.status}</span>
                         </>
                       ) : (
                         <>
                           <span className="relative flex h-2 w-2">
                             <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
                           </span>
-                          <span className="text-[11px] font-medium uppercase tracking-[0.15em] text-white/80 capitalize">{event.status || 'waiting'}</span>
+                          <span className="text-[11px] font-medium uppercase tracking-[0.15em] capitalize" style={{ color: `${sponsor.textColor}DD` }}>{event.status || 'waiting'}</span>
                         </>
                       )}
                     </div>

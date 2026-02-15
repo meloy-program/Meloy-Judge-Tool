@@ -157,11 +157,13 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
     return event?.sponsor_id && event.sponsor ? {
       name: event.sponsor.name ?? "Meloy Program",
       logo: event.sponsor.logo_url ?? "/meloyprogrammaroon.png",
+      textColor: event.sponsor.text_color ?? "#FFFFFF",
       primaryColor: event.sponsor.primary_color ?? "#500000",
       secondaryColor: event.sponsor.secondary_color ?? "#1f0000"
     } : {
       name: "Meloy Program",
       logo: "/meloyprogrammaroon.png",
+      textColor: "#FFFFFF",
       primaryColor: "#500000",
       secondaryColor: "#1f0000"
     }
@@ -280,8 +282,8 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
                       <Image src={sponsor.logo} alt={sponsor.name} width={120} height={60} className="relative h-8 sm:h-10 lg:h-14 xl:h-16 w-auto max-w-[100px] sm:max-w-[130px] lg:max-w-[180px] object-contain" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-white/70">Presented by</p>
-                      <p className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold text-white leading-tight">{sponsor.name}</p>
+                      <p className="text-[10px] sm:text-xs uppercase tracking-[0.12em]" style={{ color: `${sponsor.textColor}CC` }}>Presented by</p>
+                      <p className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold leading-tight" style={{ color: sponsor.textColor }}>{sponsor.name}</p>
                     </div>
                   </div>
                 </div>

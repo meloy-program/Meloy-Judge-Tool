@@ -3,24 +3,7 @@
  */
 
 import { get, post, put, patch } from './client';
-import type { UsersResponse, User, ActivityResponse } from '../types/api';
-
-/**
- * Get all users (admin only)
- */
-export async function getUsers(): Promise<UsersResponse> {
-    return get<UsersResponse>('/users');
-}
-
-/**
- * Update user role (admin only)
- */
-export async function updateUserRole(
-    userId: string,
-    role: string
-): Promise<{ user: User }> {
-    return put<{ user: User }>(`/users/${userId}/role`, { role });
-}
+import type { ActivityResponse } from '../types/api';
 
 /**
  * Get activity log (admin only)

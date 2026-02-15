@@ -74,7 +74,7 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
     setTeamDescription(team.description || "")
     setTeamPhoto(team.photo_url || null)
     setProjectUrl(team.project_url || "")
-    
+
     // Load team members
     try {
       const response = await fetch(`/api/proxy/teams/${team.id}`)
@@ -88,7 +88,7 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
       console.error('Failed to load team members:', error)
       setTeamMembers([{ name: "", email: "" }])
     }
-    
+
     setEditingTeam(team)
   }
 
@@ -143,9 +143,9 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
           photo_url: teamPhoto,
           project_url: projectUrl,
         };
-        
+
         console.log('Updating team with data:', updateData);
-        
+
         const response = await fetch(`/api/proxy/teams/${editingTeam.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -190,7 +190,7 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
         })
 
         if (!response.ok) throw new Error('Failed to create team')
-        
+
         const { team } = await response.json()
 
         // Add team members
@@ -225,12 +225,15 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
         method: 'DELETE',
       })
 
-      if (!response.ok) throw new Error('Failed to delete team')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        throw new Error(errorData.error || 'Failed to delete team')
+      }
 
       onTeamsChange()
     } catch (error) {
       console.error('Failed to delete team:', error)
-      alert('Failed to delete team. Please try again.')
+      alert(`Failed to delete team: ${error instanceof Error ? error.message : 'Please try again.'}`)
     }
   }
 
@@ -277,7 +280,7 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
             {teams.length}
           </Badge>
         </div>
-        
+
         {teams.length === 0 ? (
           <Card className="rounded-3xl border-2 border-slate-200 bg-gradient-to-b from-white to-slate-50 p-12 text-center shadow-lg">
             <div className="flex flex-col items-center gap-4">
@@ -291,101 +294,103 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
         ) : (
           <div className="grid gap-4 sm:gap-6">
             {teams.map((team) => {
-              const truncatedDescription = team.description && team.description.length > 120 
-                ? team.description.substring(0, 120) + '...' 
+              const truncatedDescription = team.description && team.description.length > 120
+                ? team.description.substring(0, 120) + '...'
                 : team.description;
 
               return (
                 <Card
                   key={team.id}
-                  className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-primary/25 shadow-lg transition-all hover:-translate-y-1 hover:shadow-2xl"
+                  className="group relative overflow-hidden rounded-2xl sm:rounded-3xl border-2 border-primary/25 shadow-lg transition-all hover:-translate-y-1 hover:shadow-2xl py-0 gap-0"
                   style={{ background: 'linear-gradient(to bottom, #ffffff, #f1f5f9)' }}
                 >
-                  {/* Team Members Card - Top Right on Desktop/Tablet */}
-                  {team.members && team.members.length > 0 && (
-                    <div className="hidden md:block absolute top-6 right-6 z-10 w-48 sm:w-56">
-                      <div 
-                        className="rounded-2xl border-2 border-white/30 backdrop-blur-sm px-3 sm:px-4 py-3 sm:py-4 shadow-lg"
-                        style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
-                      >
-                        <div className="flex items-center gap-2 mb-2 sm:mb-3 pb-2 sm:pb-3 border-b border-white/30">
-                          <Users className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-white" />
-                          <span className="text-xs sm:text-sm font-bold text-white">Team Members</span>
+                  {/* Desktop/Tablet: Flex row layout — card grows with tallest column */}
+                  <div className="hidden md:flex flex-row min-h-[180px]">
+                    {/* Left Column: Team Photo */}
+                    <div
+                      className="w-48 lg:w-56 xl:w-64 shrink-0 bg-slate-100 bg-cover bg-center"
+                      style={team.photo_url ? { backgroundImage: `url(${team.photo_url})` } : undefined}
+                    >
+                      {!team.photo_url && (
+                        <div className="flex items-center justify-center h-full">
+                          <Image src="/meloyprogram.png" alt="Meloy logo placeholder" width={120} height={120} className="brightness-0 opacity-25" />
                         </div>
-                        <div className="flex flex-col gap-1.5 sm:gap-2">
-                          {team.members.map((member: any) => (
-                            <div key={member.id} className="flex items-center gap-2 text-xs sm:text-sm text-white">
-                              <User className="h-3.5 sm:h-4 w-3.5 sm:w-4 text-white/70" />
-                              <span className="font-medium truncate">{member.name}</span>
-                            </div>
-                          ))}
-                        </div>
+                      )}
+                    </div>
+
+                    {/* Middle Column: Content */}
+                    <div className="flex flex-1 flex-col gap-3 min-w-0 p-6">
+                      <div className="flex-1">
+                        <h3 className="text-2xl font-bold transition-colors text-[#500000] group-hover:text-[#3d0000]">
+                          {team.name}
+                        </h3>
+                        <p className="mt-3 text-base text-[#500000]/90 leading-relaxed">
+                          {truncatedDescription || 'No description'}
+                        </p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap items-center gap-3 pt-2 mt-auto">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (team.project_url) {
+                              window.open(team.project_url, '_blank');
+                            }
+                          }}
+                          disabled={!team.project_url}
+                          variant="outline"
+                          className={`rounded-full border-2 border-white/30 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all ${team.project_url
+                              ? 'text-white hover:opacity-90'
+                              : 'text-white/40 cursor-not-allowed opacity-50'
+                            }`}
+                          style={team.project_url ? { background: 'linear-gradient(to bottom, #500000, #3d0000)' } : { background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                        >
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          View Presentation
+                        </Button>
+                        <Button
+                          onClick={() => handleEditTeam(team)}
+                          variant="outline"
+                          className="rounded-full border-2 border-white/30 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all text-white hover:opacity-90"
+                          style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          onClick={() => handleDelete(team.id)}
+                          variant="outline"
+                          className="rounded-full border-2 border-red-200 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all text-red-700 hover:bg-red-50 hover:border-red-300"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
                       </div>
                     </div>
-                  )}
 
-                  {/* Desktop/Tablet: Photo pinned to Card edges */}
-                  <div
-                    className="hidden md:block absolute top-0 bottom-0 left-0 w-48 lg:w-56 xl:w-64 bg-slate-100 bg-cover bg-center"
-                    style={team.photo_url ? { backgroundImage: `url(${team.photo_url})` } : undefined}
-                  >
-                    {!team.photo_url && (
-                      <div className="flex items-center justify-center h-full">
-                        <Image src="/meloyprogram.png" alt="Meloy logo placeholder" width={120} height={120} className="brightness-0 opacity-25" />
+                    {/* Right Column: Team Members */}
+                    {team.members && team.members.length > 0 && (
+                      <div className="w-48 lg:w-56 shrink-0 p-4 lg:p-6">
+                        <div
+                          className="rounded-2xl border-2 border-white/30 backdrop-blur-sm px-3 lg:px-4 py-3 lg:py-4 shadow-lg"
+                          style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
+                        >
+                          <div className="flex items-center gap-2 mb-2 lg:mb-3 pb-2 lg:pb-3 border-b border-white/30">
+                            <Users className="h-3.5 lg:h-4 w-3.5 lg:w-4 text-white" />
+                            <span className="text-xs lg:text-sm font-bold text-white">Team Members</span>
+                          </div>
+                          <div className="flex flex-col gap-1.5 lg:gap-2">
+                            {team.members.map((member: any) => (
+                              <div key={member.id} className="flex items-center gap-2 text-xs lg:text-sm text-white">
+                                <User className="h-3.5 lg:h-4 w-3.5 lg:w-4 text-white/70 shrink-0" />
+                                <span className="font-medium truncate">{member.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     )}
-                  </div>
-
-                  <div className="hidden md:flex flex-col gap-3 min-w-0 p-6 ml-48 lg:ml-56 xl:ml-64 pr-64">
-                    {/* Team Header */}
-                    <div className="flex-1">
-                      <h3 className="text-2xl font-bold transition-colors text-[#500000] group-hover:text-[#3d0000]">
-                        {team.name}
-                      </h3>
-                      <p className="mt-3 text-base text-[#500000]/90 leading-relaxed">
-                        {truncatedDescription || 'No description'}
-                      </p>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center gap-3 pt-2 mt-auto">
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (team.project_url) {
-                            window.open(team.project_url, '_blank');
-                          }
-                        }}
-                        disabled={!team.project_url}
-                        variant="outline"
-                        className={`rounded-full border-2 border-white/30 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all ${
-                          team.project_url 
-                            ? 'text-white hover:opacity-90' 
-                            : 'text-white/40 cursor-not-allowed opacity-50'
-                        }`}
-                        style={team.project_url ? { background: 'linear-gradient(to bottom, #500000, #3d0000)' } : { background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
-                      >
-                        <ExternalLink className="mr-2 h-4 w-4" />
-                        View Presentation
-                      </Button>
-                      <Button
-                        onClick={() => handleEditTeam(team)}
-                        variant="outline"
-                        className="rounded-full border-2 border-white/30 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all text-white hover:opacity-90"
-                        style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
-                      >
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        onClick={() => handleDelete(team.id)}
-                        variant="outline"
-                        className="rounded-full border-2 border-red-200 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all text-red-700 hover:bg-red-50 hover:border-red-300"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
                   </div>
 
                   {/* Mobile Layout */}
@@ -393,8 +398,8 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
                     {/* Team Photo */}
                     <div className="w-full mb-6">
                       {team.photo_url ? (
-                        <img 
-                          src={team.photo_url} 
+                        <img
+                          src={team.photo_url}
                           alt={`${team.name} photo`}
                           className="w-full h-64 rounded-2xl object-cover border-2 border-slate-200 shadow-lg"
                         />
@@ -418,7 +423,7 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
                     {/* Team Members */}
                     {team.members && team.members.length > 0 && (
                       <div className="w-full mb-4">
-                        <div 
+                        <div
                           className="rounded-2xl border-2 border-white/30 backdrop-blur-sm px-4 py-3 shadow-lg"
                           style={{ background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
                         >
@@ -449,11 +454,10 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
                         }}
                         disabled={!team.project_url}
                         variant="outline"
-                        className={`w-full rounded-full border-2 border-white/30 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all ${
-                          team.project_url 
-                            ? 'text-white hover:opacity-90' 
+                        className={`w-full rounded-full border-2 border-white/30 px-5 py-2.5 text-base font-semibold shadow-lg backdrop-blur-sm transition-all ${team.project_url
+                            ? 'text-white hover:opacity-90'
                             : 'text-white/40 cursor-not-allowed opacity-50'
-                        }`}
+                          }`}
                         style={team.project_url ? { background: 'linear-gradient(to bottom, #500000, #3d0000)' } : { background: 'linear-gradient(to bottom, #500000, #3d0000)' }}
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />

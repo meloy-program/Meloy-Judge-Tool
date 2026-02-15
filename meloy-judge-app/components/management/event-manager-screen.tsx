@@ -407,20 +407,20 @@ export function EventManagerScreen({ eventId, userId, onBack, onSave, userName, 
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent className="max-w-2xl rounded-3xl border-2 border-white/30 bg-white/90 backdrop-blur-xl shadow-2xl p-0">
           <AlertDialogHeader className="p-8 pb-4">
-            <AlertDialogTitle className="text-3xl font-semibold text-slate-900">Leave Without Saving?</AlertDialogTitle>
+            <AlertDialogTitle className="text-3xl font-semibold text-slate-900">Are you sure?</AlertDialogTitle>
             <AlertDialogDescription className="mt-4 text-xl text-slate-600 leading-relaxed">
-              Any unsaved changes will be lost. Make sure to save your changes before leaving.
+              You're about to leave the event manager.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-3 p-8 pt-4 sm:flex-row">
             <AlertDialogCancel className="h-16 flex-1 rounded-2xl border-2 border-slate-300 text-lg font-semibold text-slate-600 hover:border-primary/40 hover:bg-primary/5">
-              Stay and Continue
+              Cancel
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmExit}
               className="h-16 flex-1 rounded-2xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
             >
-              Leave Without Saving
+              Leave
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

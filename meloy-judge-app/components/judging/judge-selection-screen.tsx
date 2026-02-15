@@ -50,11 +50,13 @@ export function JudgeSelectionScreen({ eventId, eventName, onSelectJudge, onBack
     return event.sponsor_id && event.sponsor ? {
       name: event.sponsor.name ?? "Meloy Program",
       logo: event.sponsor.logo_url ?? "/meloyprogrammaroon.png",
+      textColor: event.sponsor.text_color ?? "#FFFFFF",
       primaryColor: event.sponsor.primary_color ?? "#500000",
       secondaryColor: event.sponsor.secondary_color ?? "#1f0000"
     } : {
       name: "Meloy Program",
       logo: "/meloyprogrammaroon.png",
+      textColor: "#FFFFFF",
       primaryColor: "#500000",
       secondaryColor: "#1f0000"
     }

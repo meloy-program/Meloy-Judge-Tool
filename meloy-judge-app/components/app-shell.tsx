@@ -25,6 +25,7 @@ export function AppShell({ initialScreen = "login" }: AppShellProps) {
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
     const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
     const [isAdmin, setIsAdmin] = useState(false)
+    const [userId, setUserId] = useState<string | null>(null)
     const [userRole, setUserRole] = useState<string | null>(null)
     const [managingEventId, setManagingEventId] = useState<string | null>(null)
     const [previousScreen, setPreviousScreen] = useState<Screen | null>(null)
@@ -39,6 +40,7 @@ export function AppShell({ initialScreen = "login" }: AppShellProps) {
                 try {
                     const userData = await getCurrentUser()
                     console.log('User data fetched:', userData.user)
+                    setUserId(userData.user.id || null)
                     setUserName(userData.user.name || 'User')
                     setUserRole(userData.user.role || 'judge')
                     setIsAdmin(userData.user.role === 'admin')
@@ -173,7 +175,7 @@ export function AppShell({ initialScreen = "login" }: AppShellProps) {
                 />
             )}
             {currentScreen === "team-detail" && selectedTeamId && (
-                <TeamDetailScreen teamId={selectedTeamId} judgeId={judgeId} onBack={handleBack} judgeName={isAdmin ? userName : judgeName} isAdmin={isAdmin} />
+                <TeamDetailScreen eventId={selectedEventId!} teamId={selectedTeamId} judgeId={judgeId} onBack={handleBack} onSubmitScores={handleBack} judgeName={isAdmin ? userName : judgeName} isAdmin={isAdmin} />
             )}
             {currentScreen === "leaderboard" && selectedEventId && (
                 <LeaderboardScreen eventId={selectedEventId} judgeId={judgeId} onBack={handleBack} judgeName={isAdmin ? userName : judgeName} isAdmin={isAdmin} />
@@ -182,9 +184,9 @@ export function AppShell({ initialScreen = "login" }: AppShellProps) {
                 <ModeratorScreen eventId={selectedEventId} onBack={handleBack} userName={userName} />
             )}
             {currentScreen === "admin" && <AdminScreen onBack={handleBack} onCreateEvent={handleCreateEvent} onManageEvent={handleManageEvent} />}
-            {currentScreen === "event-creation" && <EventCreationScreen onBack={handleBack} onCreateEvent={handleEventCreated} />}
+            {currentScreen === "event-creation" && <EventCreationScreen onBack={handleBack} />}
             {currentScreen === "event-manager" && managingEventId && (
-                <EventManagerScreen eventId={managingEventId} onBack={handleBack} onSave={handleEventManagerSave} />
+                <EventManagerScreen eventId={managingEventId} userId={userId || ''} onBack={handleBack} onSave={handleEventManagerSave} userName={userName || 'User'} userRole={userRole || 'judge'} />
             )}
             {currentScreen === "insights" && <InsightsScreen onBack={handleBack} />}
         </main>

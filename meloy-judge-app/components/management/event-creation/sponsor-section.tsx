@@ -137,7 +137,7 @@ export function SponsorSection({
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-3">
           <div className="space-y-3">
             <Label htmlFor="primary-color" className="text-sm font-bold uppercase tracking-[0.15em] text-slate-700">
               <Palette className="mr-2 inline h-4 w-4" />
@@ -179,6 +179,27 @@ export function SponsorSection({
               />
             </div>
           </div>
+
+          <div className="space-y-3">
+            <Label htmlFor="text-color" className="text-sm font-bold uppercase tracking-[0.15em] text-slate-700">
+              <Palette className="mr-2 inline h-4 w-4" />
+              Text Color
+            </Label>
+            <div className="flex items-center gap-3">
+              <Input
+                id="text-color"
+                type="color"
+                value={textColor}
+                onChange={(e) => setTextColor(e.target.value)}
+                className="h-14 w-20 cursor-pointer rounded-2xl border-2 border-slate-200 p-1 shadow-inner"
+              />
+              <Input
+                value={textColor}
+                onChange={(e) => setTextColor(e.target.value)}
+                className="h-14 flex-1 rounded-2xl border-2 border-slate-200 px-4 text-base shadow-inner focus:border-primary/40 transition-colors"
+              />
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -207,8 +228,8 @@ export function SponsorSection({
                     />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] sm:text-xs uppercase tracking-[0.12em] text-white/70">Presented by</p>
-                    <p className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold text-white leading-tight">{sponsorName || "Sponsor Name"}</p>
+                    <p className="text-[10px] sm:text-xs uppercase tracking-[0.12em]" style={{ color: `${textColor}CC` }}>Presented by</p>
+                    <p className="text-base sm:text-lg lg:text-xl xl:text-2xl font-semibold leading-tight" style={{ color: textColor }}>{sponsorName || "Sponsor Name"}</p>
                   </div>
                 </div>
               </div>
