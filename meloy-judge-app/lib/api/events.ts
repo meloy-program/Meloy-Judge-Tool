@@ -88,6 +88,15 @@ export async function getEventLeaderboard(
 }
 
 /**
+ * Get detailed leaderboard with judge-by-judge breakdown
+ */
+export async function getDetailedLeaderboard(
+    eventId: string
+): Promise<DetailedLeaderboardResponse> {
+    return get<DetailedLeaderboardResponse>(`/events/${eventId}/leaderboard/detailed`);
+}
+
+/**
  * Get insights for an event (admin only)
  */
 export async function getEventInsights(

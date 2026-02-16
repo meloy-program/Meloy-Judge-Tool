@@ -211,7 +211,7 @@ export function JudgeProgressScreen({ eventId, judgeId, onBack, judgeName, isAdm
 
                         {/* Center: Title (hidden on mobile) */}
                         <div className="hidden md:flex flex-col items-center flex-1 min-w-0 px-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60 mb-1">My Progress</p>
+                            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/60 mb-1">Summary Screen</p>
                             <h1 className="text-xl lg:text-2xl xl:text-3xl font-semibold text-white leading-tight text-center truncate w-full">{event.name}</h1>
                         </div>
 

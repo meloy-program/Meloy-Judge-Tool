@@ -464,23 +464,28 @@ router.patch('/:eventId/phase', authenticate, requireRole(['moderator', 'admin']
 router.get('/:eventId/leaderboard', async (req, res) => {
     try {
         const leaderboardData = await query(
-            `SELECT 
-        t.id,
-        t.name as team_name,
-        t.project_title,
-        COALESCE(SUM(s.score), 0) as total_score,
-        COUNT(DISTINCT ss.judge_id) FILTER (WHERE ss.submitted_at IS NOT NULL) as judges_scored,
-        CASE 
-          WHEN COUNT(DISTINCT ss.judge_id) FILTER (WHERE ss.submitted_at IS NOT NULL) > 0 
-          THEN ROUND(COALESCE(SUM(s.score), 0)::numeric / COUNT(DISTINCT ss.judge_id) FILTER (WHERE ss.submitted_at IS NOT NULL), 2)
-          ELSE 0
-        END as avg_score
-      FROM teams t
-      LEFT JOIN score_submissions ss ON t.id = ss.team_id
-      LEFT JOIN scores s ON ss.id = s.submission_id
-      WHERE t.event_id = $1
-      GROUP BY t.id
-      ORDER BY total_score DESC, t.name ASC`,
+            `WITH judge_totals AS (
+                SELECT 
+                    ss.team_id,
+                    ss.judge_id,
+                    COALESCE(SUM(s.score), 0) as judge_total
+                FROM score_submissions ss
+                LEFT JOIN scores s ON ss.id = s.submission_id
+                WHERE ss.submitted_at IS NOT NULL
+                GROUP BY ss.team_id, ss.judge_id
+            )
+            SELECT 
+                t.id,
+                t.name as team_name,
+                t.project_title,
+                COALESCE(ROUND(AVG(jt.judge_total)::numeric, 2), 0) as avg_score,
+                COUNT(DISTINCT jt.judge_id) as judges_scored,
+                COALESCE(SUM(jt.judge_total)::integer, 0) as total_score
+            FROM teams t
+            LEFT JOIN judge_totals jt ON t.id = jt.team_id
+            WHERE t.event_id = $1
+            GROUP BY t.id, t.name, t.project_title
+            ORDER BY avg_score DESC, t.name ASC`,
             [req.params.eventId]
         );
 
@@ -488,12 +493,117 @@ router.get('/:eventId/leaderboard', async (req, res) => {
         const leaderboard = leaderboardData.map((team: any, index: number) => ({
             ...team,
             rank: index + 1,
-            avg_score: parseFloat(team.avg_score)
+            avg_score: parseFloat(team.avg_score),
+            total_score: parseInt(team.total_score),
+            judges_scored: parseInt(team.judges_scored)
         }));
 
         res.json({ leaderboard });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    }
+});
+
+/**
+ * Get detailed leaderboard with judge-by-judge breakdown
+ */
+router.get('/:eventId/leaderboard/detailed', async (req, res) => {
+    try {
+        // Get team scores with judge breakdown
+        // Uses CTE to pre-calculate each judge's total score per team
+        // Then aggregates: avg_score = average of judge totals, total_score = sum of judge totals
+        const teamsData = await query(
+            `WITH judge_totals AS (
+                SELECT 
+                    ss.team_id,
+                    ss.judge_id,
+                    COALESCE(SUM(s.score), 0) as judge_total
+                FROM score_submissions ss
+                LEFT JOIN scores s ON ss.id = s.submission_id
+                WHERE ss.submitted_at IS NOT NULL
+                GROUP BY ss.team_id, ss.judge_id
+            )
+            SELECT 
+                t.id as team_id,
+                t.name as team_name,
+                t.project_title,
+                t.description,
+                COALESCE(ROUND(AVG(jt.judge_total)::numeric, 2), 0) as avg_score,
+                COUNT(DISTINCT jt.judge_id) as judges_scored,
+                COALESCE(SUM(jt.judge_total)::integer, 0) as total_score,
+                COALESCE(ROUND(STDDEV_POP(jt.judge_total)::numeric, 2), 0) as score_stddev
+            FROM teams t
+            LEFT JOIN judge_totals jt ON t.id = jt.team_id
+            WHERE t.event_id = $1
+            GROUP BY t.id, t.name, t.project_title, t.description
+            ORDER BY avg_score DESC, t.name ASC`,
+            [req.params.eventId]
+        );
+
+        // Get individual judge scores for each team
+        // Each judge's total_score is the sum of all their criteria scores for that team
+        const judgeScores = await query(
+            `SELECT 
+                ss.team_id,
+                ej.name as judge_name,
+                ej.id as judge_id,
+                COALESCE(SUM(s.score), 0)::integer as total_score,
+                COUNT(s.id) as criteria_count,
+                ss.submitted_at,
+                ss.time_spent_seconds,
+                json_agg(
+                    json_build_object(
+                        'criteria_id', rc.id,
+                        'criteria_name', rc.name,
+                        'score', s.score,
+                        'max_score', rc.max_score,
+                        'reflection', s.reflection
+                    ) ORDER BY rc.display_order
+                ) as criteria_scores
+            FROM score_submissions ss
+            JOIN event_judges ej ON ss.judge_id = ej.id
+            LEFT JOIN scores s ON ss.id = s.submission_id
+            LEFT JOIN rubric_criteria rc ON s.rubric_criteria_id = rc.id
+            WHERE ss.event_id = $1 AND ss.submitted_at IS NOT NULL
+            GROUP BY ss.team_id, ej.id, ej.name, ss.submitted_at, ss.time_spent_seconds`,
+            [req.params.eventId]
+        );
+
+        // Organize judge scores by team
+        const judgeScoresByTeam: Record<string, any[]> = {};
+        judgeScores.forEach((score: any) => {
+            if (!judgeScoresByTeam[score.team_id]) {
+                judgeScoresByTeam[score.team_id] = [];
+            }
+            judgeScoresByTeam[score.team_id].push({
+                judge_name: score.judge_name,
+                judge_id: score.judge_id,
+                total_score: parseInt(score.total_score),
+                criteria_count: parseInt(score.criteria_count),
+                submitted_at: score.submitted_at,
+                time_spent_seconds: score.time_spent_seconds,
+                criteria_scores: score.criteria_scores
+            });
+        });
+
+        // Add rank and judge details to each team
+        const detailedLeaderboard = teamsData.map((team: any, index: number) => ({
+            team_id: team.team_id,
+            team_name: team.team_name,
+            project_title: team.project_title,
+            description: team.description,
+            rank: index + 1,
+            total_score: parseInt(team.total_score),
+            avg_score: parseFloat(team.avg_score),
+            judges_scored: parseInt(team.judges_scored),
+            score_stddev: team.score_stddev ? parseFloat(team.score_stddev) : 0,
+            judge_scores: judgeScoresByTeam[team.team_id] || []
+        }));
+
+        res.json({ leaderboard: detailedLeaderboard });
+    } catch (error) {
+        console.error('Failed to fetch detailed leaderboard:', error);
+        res.status(500).json({ error: 'Failed to fetch detailed leaderboard' });
     }
 });
 

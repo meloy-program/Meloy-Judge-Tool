@@ -79,12 +79,6 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
                     [submissionId, judgeId, teamId, overallComments]
                 );
             }
-
-            // Update team status to 'completed' when scores are submitted
-            await client.query(
-                `UPDATE teams SET status = 'completed', updated_at = NOW() WHERE id = $1`,
-                [teamId]
-            );
         });
 
         return res.json({ message: 'Scores submitted successfully' });

@@ -553,49 +553,57 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
 
           {/* Event Control - Full Width */}
           <Card className="relative overflow-hidden rounded-[28px] border-2 border-primary/25 bg-white/95 shadow-lg">
-            <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-slate-900">Event Control</h3>
-                      <p className="text-sm text-slate-600 mt-1">
-                        {eventStatus === "ended"
-                          ? "Judging has ended. Summary available to judges."
-                          : allTeamsCompleted
-                            ? "All teams completed. Ready to end judging."
-                            : "Waiting for all teams to be marked as completed"
-                        }
-                      </p>
-                    </div>
-
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          disabled={eventStatus === "ended" || !allTeamsCompleted}
-                          className="h-12 rounded-xl bg-primary px-6 text-base font-semibold text-white transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <StopCircle className="mr-2 h-5 w-5" />
-                          End Judging
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>End Judging?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to end the judging phase? This action cannot be undone and will finalize the event results.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={handleEndJudging}
-                            className="bg-primary hover:bg-primary/90"
-                          >
-                            End Judging
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+            <CardHeader className="px-6 pt-5 pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary/20 to-primary/10">
+                    <StopCircle className="h-6 w-6 text-primary" />
                   </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-slate-900">Event Control</CardTitle>
+                    <CardDescription className="text-base text-slate-600">
+                      {eventStatus === "ended"
+                        ? "Judging has ended. Summary available to judges."
+                        : allTeamsCompleted
+                          ? "All teams completed. Ready to end judging."
+                          : "Waiting for all teams to be marked as completed"
+                      }
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-6 pb-5 pt-2">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    disabled={eventStatus === "ended" || !allTeamsCompleted}
+                    className="h-14 w-full rounded-2xl bg-gradient-to-b from-primary to-[#3d0000] text-base font-bold text-white shadow-xl transition-all hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 md:w-auto md:px-10"
+                  >
+                    <StopCircle className="mr-2 h-5 w-5" />
+                    End Judging
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-2xl rounded-3xl border-2 border-white/30 bg-white/90 backdrop-blur-xl shadow-2xl p-0">
+                  <AlertDialogHeader className="p-8 pb-4">
+                    <AlertDialogTitle className="text-3xl font-semibold text-slate-900">End Judging?</AlertDialogTitle>
+                    <AlertDialogDescription className="mt-4 text-xl text-slate-600 leading-relaxed">
+                      Are you sure you want to end the judging phase? This action cannot be undone and will finalize the event results.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="flex-col gap-3 p-8 pt-4 sm:flex-row">
+                    <AlertDialogCancel className="h-16 flex-1 rounded-2xl border-2 border-slate-300 text-lg font-semibold text-slate-600 hover:border-primary/40 hover:bg-primary/5">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleEndJudging}
+                      className="h-16 flex-1 rounded-2xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
+                    >
+                      End Judging
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardContent>
           </Card>
         </div>

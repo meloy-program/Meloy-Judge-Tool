@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { User, Search, Check, Loader2, AlertCircle, Plus } from "lucide-react"
 import type { User as UserType } from "@/lib/types/api"
-import { getUsers } from "@/lib/api/admin"
+import { getUsers } from "@/lib/api/users"
 
 interface JudgeAccountSectionProps {
   selectedJudgeEmail: string | null

@@ -29,6 +29,8 @@ import {
   Save,
   ImageIcon,
   ExternalLink,
+  FileImage,
+  AlertCircle,
 } from "lucide-react"
 import type { Team } from "@/lib/types/api"
 
@@ -55,6 +57,14 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
   const [teamPhoto, setTeamPhoto] = useState<string | null>(null)
   const [projectUrl, setProjectUrl] = useState("")
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([{ name: "", email: "" }])
+  const [fileSize, setFileSize] = useState<number | null>(null)
+  const MAX_FILE_SIZE_MB = 5
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+  }
 
   const resetForm = () => {
     setTeamName("")
@@ -62,6 +72,7 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
     setTeamPhoto(null)
     setProjectUrl("")
     setTeamMembers([{ name: "", email: "" }])
+    setFileSize(null)
   }
 
   const handleCreateTeam = () => {
@@ -95,6 +106,14 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      const fileSizeInMB = file.size / (1024 * 1024)
+      setFileSize(file.size)
+
+      if (fileSizeInMB > MAX_FILE_SIZE_MB) {
+        alert(`File size (${formatFileSize(file.size)}) exceeds the ${MAX_FILE_SIZE_MB}MB limit. Please choose a smaller image.`)
+        return
+      }
+
       const reader = new FileReader()
       reader.onloadend = () => {
         setTeamPhoto(reader.result as string)
@@ -541,22 +560,44 @@ export function TeamsTab({ eventId, teams, onTeamsChange }: TeamsTabProps) {
                 <Upload className="h-4 w-4 text-primary" />
                 Team Photo
               </Label>
-              <div className="flex items-center gap-6">
-                {teamPhoto && (
-                  <div className="relative h-32 w-32 overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-50 shadow-lg">
-                    <Image src={teamPhoto} alt="Team Photo" fill className="object-cover" />
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-6">
+                  {teamPhoto && (
+                    <div className="relative h-32 w-32 overflow-hidden rounded-2xl border-2 border-slate-200 bg-slate-50 shadow-lg">
+                      <Image src={teamPhoto} alt="Team Photo" fill className="object-cover" />
+                    </div>
+                  )}
+                  <Label
+                    htmlFor="photo-upload"
+                    className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-8 py-6 transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
+                  >
+                    <Upload className="h-6 w-6 text-primary" />
+                    <span className="text-base font-bold text-slate-700">
+                      {teamPhoto ? "Change Photo" : "Upload Photo"}
+                    </span>
+                    <Input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+                  </Label>
+                </div>
+                
+                {/* File size indicator */}
+                <div className="flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200 px-4 py-3">
+                  <FileImage className="h-4 w-4 text-slate-500" />
+                  <div className="flex-1 flex items-center justify-between gap-4">
+                    <span className="text-sm text-slate-600">
+                      {fileSize ? (
+                        <>
+                          Current size: <span className="font-semibold text-slate-900">{formatFileSize(fileSize)}</span>
+                        </>
+                      ) : (
+                        "No file selected"
+                      )}
+                    </span>
+                    <div className="flex items-center gap-2 text-xs text-slate-500">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>Max {MAX_FILE_SIZE_MB}MB</span>
+                    </div>
                   </div>
-                )}
-                <Label
-                  htmlFor="photo-upload"
-                  className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-8 py-6 transition-all hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
-                >
-                  <Upload className="h-6 w-6 text-primary" />
-                  <span className="text-base font-bold text-slate-700">
-                    {teamPhoto ? "Change Photo" : "Upload Photo"}
-                  </span>
-                  <Input id="photo-upload" type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-                </Label>
+                </div>
               </div>
             </div>
 

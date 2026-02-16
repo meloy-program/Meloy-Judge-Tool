@@ -113,6 +113,37 @@ export interface LeaderboardEntry {
     rank: number;
 }
 
+export interface CriteriaScore {
+    criteria_id: string;
+    criteria_name: string;
+    score: number;
+    max_score: number;
+    reflection: string | null;
+}
+
+export interface JudgeScore {
+    judge_name: string;
+    judge_id: string;
+    total_score: number;
+    criteria_count: number;
+    submitted_at: string;
+    time_spent_seconds: number;
+    criteria_scores: CriteriaScore[];
+}
+
+export interface DetailedLeaderboardEntry {
+    team_id: string;
+    team_name: string;
+    project_title: string | null;
+    description: string | null;
+    rank: number;
+    total_score: number;
+    avg_score: number;
+    judges_scored: number;
+    score_stddev: number;
+    judge_scores: JudgeScore[];
+}
+
 export interface ActivityLogEntry {
     id: string;
     user_id: string;
@@ -169,6 +200,10 @@ export interface TeamsResponse {
 
 export interface LeaderboardResponse {
     leaderboard: LeaderboardEntry[];
+}
+
+export interface DetailedLeaderboardResponse {
+    leaderboard: DetailedLeaderboardEntry[];
 }
 
 export interface RubricResponse {
