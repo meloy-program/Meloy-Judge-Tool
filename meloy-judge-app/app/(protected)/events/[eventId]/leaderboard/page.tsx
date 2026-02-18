@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { getCurrentUser } from '@/lib/api';
 import { getJudgeProfile } from '@/lib/judge-context';
+import { useAuthToken } from '@/lib/auth-context';
 
 export default function LeaderboardPage() {
   const router = useRouter();
@@ -17,8 +18,13 @@ export default function LeaderboardPage() {
   const [userName, setUserName] = useState<string>('User');
   const [judgeId, setJudgeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isTokenValid, isValidating } = useAuthToken();
 
   useEffect(() => {
+    if (isValidating || !isTokenValid) {
+      return;
+    }
+
     async function fetchUser() {
       try {
         const userData = await getCurrentUser();
@@ -46,13 +52,13 @@ export default function LeaderboardPage() {
       }
     }
     fetchUser();
-  }, [auth0User, eventId]);
+  }, [auth0User, eventId, isTokenValid, isValidating]);
 
   const handleBack = () => {
     router.push(`/events/${eventId}`);
   };
 
-  if (loading) {
+  if (loading || isValidating) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 

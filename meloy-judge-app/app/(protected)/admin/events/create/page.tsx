@@ -4,13 +4,19 @@ import { EventCreationScreen } from '@/components/management/event-creation-scre
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { getCurrentUser } from '@/lib/api';
+import { useAuthToken } from '@/lib/auth-context';
 
 export default function EventCreatePage() {
   const router = useRouter();
   const [userRole, setUserRole] = useState<string>('judge');
   const [loading, setLoading] = useState(true);
+  const { isTokenValid, isValidating } = useAuthToken();
 
   useEffect(() => {
+    if (isValidating || !isTokenValid) {
+      return;
+    }
+
     async function fetchUser() {
       try {
         const userData = await getCurrentUser();
@@ -22,14 +28,14 @@ export default function EventCreatePage() {
       }
     }
     fetchUser();
-  }, []);
+  }, [isTokenValid, isValidating]);
 
   const handleBack = () => {
     router.push('/admin');
   };
 
   // Only allow admin access
-  if (loading) {
+  if (loading || isValidating) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 

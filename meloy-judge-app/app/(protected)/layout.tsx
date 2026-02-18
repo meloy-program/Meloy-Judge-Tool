@@ -2,7 +2,8 @@
 
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AuthTokenProvider } from '@/lib/auth-context';
 
 export default function ProtectedLayout({
   children,
@@ -12,6 +13,7 @@ export default function ProtectedLayout({
   const { user, isLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const [isValidatingToken, setIsValidatingToken] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -20,7 +22,48 @@ export default function ProtectedLayout({
     }
   }, [user, isLoading, router, pathname]);
 
-  if (isLoading) {
+  // Validate token when user is loaded
+  useEffect(() => {
+    async function validateToken() {
+      if (!user || isLoading) {
+        setIsValidatingToken(false);
+        return;
+      }
+
+      try {
+        console.log('[ProtectedLayout] Validating token...');
+        
+        // Make a test API call to verify the token actually works
+        const response = await fetch('/api/proxy/auth/me', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        console.log('[ProtectedLayout] Token validation response:', response.status);
+        
+        if (!response.ok) {
+          console.log('[ProtectedLayout] Token validation failed, redirecting to login');
+          // Token is invalid/expired, redirect to login
+          window.location.href = `/api/auth/login?returnTo=${encodeURIComponent(pathname)}`;
+          return;
+        }
+
+        // Token is valid
+        console.log('[ProtectedLayout] Token is valid');
+        setIsValidatingToken(false);
+      } catch (error) {
+        console.error('[ProtectedLayout] Token validation error:', error);
+        // On error, redirect to login
+        window.location.href = `/api/auth/login?returnTo=${encodeURIComponent(pathname)}`;
+      }
+    }
+
+    validateToken();
+  }, [user, isLoading, pathname]);
+
+  if (isLoading || isValidatingToken) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Loading...</div>
@@ -32,5 +75,9 @@ export default function ProtectedLayout({
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <AuthTokenProvider>
+      {children}
+    </AuthTokenProvider>
+  );
 }

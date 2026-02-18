@@ -6,6 +6,7 @@ import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { getCurrentUser, getJudgeProfiles } from '@/lib/api';
+import { useAuthToken } from '@/lib/auth-context';
 
 // Session storage key for judge profile
 const JUDGE_SESSION_KEY = 'current_judge_session';
@@ -31,11 +32,16 @@ export default function EventDetailPage() {
   const [judgeId, setJudgeId] = useState<string | null>(null);
   const [needsProfileSelection, setNeedsProfileSelection] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { isTokenValid, isValidating } = useAuthToken();
 
   // Check if coming from dashboard (force profile selection)
   const fromDashboard = searchParams.get('from') === 'dashboard';
 
   useEffect(() => {
+    if (isValidating || !isTokenValid) {
+      return;
+    }
+
     async function fetchUser() {
       try {
         const userData = await getCurrentUser();
@@ -108,7 +114,7 @@ export default function EventDetailPage() {
       }
     }
     fetchUser();
-  }, [auth0User, eventId, fromDashboard]);
+  }, [auth0User, eventId, fromDashboard, isTokenValid, isValidating]);
 
   const handleSelectJudge = (selectedJudgeId: string, selectedJudgeName: string) => {
     // Store in session storage
@@ -147,7 +153,7 @@ export default function EventDetailPage() {
     router.push(`/admin/events/${eventId}/manage`);
   };
 
-  if (loading) {
+  if (loading || isValidating) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 

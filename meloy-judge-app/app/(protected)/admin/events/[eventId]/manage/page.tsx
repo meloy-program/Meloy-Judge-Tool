@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useUser } from '@auth0/nextjs-auth0/client';
 import { getCurrentUser } from '@/lib/api';
+import { useAuthToken } from '@/lib/auth-context';
 
 export default function EventManagePage() {
   const router = useRouter();
@@ -16,8 +17,13 @@ export default function EventManagePage() {
   const [userRole, setUserRole] = useState<string>('judge');
   const [userName, setUserName] = useState<string>('User');
   const [loading, setLoading] = useState(true);
+  const { isTokenValid, isValidating } = useAuthToken();
 
   useEffect(() => {
+    if (isValidating || !isTokenValid) {
+      return;
+    }
+
     async function fetchUser() {
       try {
         const userData = await getCurrentUser();
@@ -32,7 +38,7 @@ export default function EventManagePage() {
       }
     }
     fetchUser();
-  }, [auth0User]);
+  }, [auth0User, isTokenValid, isValidating]);
 
   const handleBack = () => {
     router.back();
@@ -44,7 +50,7 @@ export default function EventManagePage() {
   };
 
   // Only allow admin access
-  if (loading) {
+  if (loading || isValidating) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 

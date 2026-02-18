@@ -33,13 +33,14 @@ interface DashboardScreenProps {
   onSelectEvent: (eventId: string) => void
   onNavigate: (screen: Screen) => void
   isAdmin: boolean
+  shouldFetchData?: boolean // Add flag to control when to fetch
 }
 
 interface EventWithTeams extends Event {
   teams?: Array<{ id: string; name: string }>
 }
 
-export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: DashboardScreenProps) {
+export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin, shouldFetchData = true }: DashboardScreenProps) {
   const { user: auth0User } = useUser()
   const [events, setEvents] = useState<EventWithTeams[]>([])
   const [loading, setLoading] = useState(true)
@@ -47,6 +48,11 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
   const [userRole, setUserRole] = useState<string>('judge')
 
   useEffect(() => {
+    // Don't fetch if we shouldn't (waiting for token validation)
+    if (!shouldFetchData) {
+      return
+    }
+
     async function fetchData() {
       try {
         setLoading(true)
@@ -83,7 +89,7 @@ export function DashboardScreen({ onSelectEvent, onNavigate, isAdmin }: Dashboar
       }
     }
     fetchData()
-  }, [])
+  }, [shouldFetchData])
 
   // Get user name from Auth0 or fallback
   const userName = auth0User?.name || auth0User?.email?.split('@')[0] || 'User'
