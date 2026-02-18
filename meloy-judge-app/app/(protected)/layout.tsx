@@ -33,7 +33,7 @@ export default function ProtectedLayout({
       try {
         console.log('[ProtectedLayout] Validating token...');
         
-        // Make a test API call to verify the token actually works
+        // Use proxy route to avoid CORS issues
         const response = await fetch('/api/proxy/auth/me', {
           method: 'GET',
           headers: {

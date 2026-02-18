@@ -2,12 +2,8 @@
  * Base API client for making HTTP requests
  */
 
-// Get API URL from Next.js env config (with fallback)
-const API_URL: string = process.env.NEXT_PUBLIC_API_URL || 'https://o90rhtv5i4.execute-api.us-east-1.amazonaws.com/prod';
-
-if (!process.env.NEXT_PUBLIC_API_URL) {
-    console.warn('NEXT_PUBLIC_API_URL not set, using fallback URL');
-}
+// Use the Next.js proxy route to avoid CORS issues
+const API_URL: string = '/api/proxy';
 
 // Cache for the auth token
 let cachedToken: string | null = null;
@@ -50,17 +46,14 @@ export async function apiCall<T>(
     endpoint: string,
     options?: RequestInit
 ): Promise<T> {
+    // Use proxy route - it handles auth token automatically
     const url = `${API_URL}${endpoint}`;
 
     try {
-        // Get auth token
-        const token = await getAuthToken();
-
         const response = await fetch(url, {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
                 ...options?.headers,
             },
         });
@@ -73,11 +66,6 @@ export async function apiCall<T>(
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
-            // Clear cached token on 401
-            if (response.status === 401) {
-                cachedToken = null;
-            }
-
             throw new ApiError(
                 data.error || `API request failed with status ${response.status}`,
                 response.status,

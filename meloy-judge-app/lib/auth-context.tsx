@@ -29,7 +29,7 @@ export function AuthTokenProvider({ children }: { children: ReactNode }) {
       try {
         console.log('[AuthTokenProvider] Validating token...');
         
-        // Make a test API call to verify the token actually works with backend
+        // Use proxy route to avoid CORS issues
         const response = await fetch('/api/proxy/auth/me', {
           method: 'GET',
           headers: {
