@@ -719,6 +719,289 @@ router.post('/migrate-user-roles', async (_req, res) => {
 });
 
 /**
+ * Verify migration - Check database schema
+ * Tests that mentor_name and team_awards exist
+ */
+router.get('/verify-migration', async (_req, res) => {
+    try {
+        console.log('🔍 Verifying database schema...');
+
+        const results: any = {};
+
+        // Check mentor_name column
+        const mentorCheck = await query(`
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns 
+            WHERE table_name = 'teams' AND column_name = 'mentor_name'
+        `);
+        results.mentor_name_column = mentorCheck.length > 0 ? mentorCheck[0] : null;
+
+        // Check team_awards table
+        const awardsTableCheck = await query(`
+            SELECT table_name, table_type
+            FROM information_schema.tables 
+            WHERE table_name = 'team_awards'
+        `);
+        results.team_awards_table = awardsTableCheck.length > 0 ? awardsTableCheck[0] : null;
+
+        // Check team_awards columns
+        const awardsColumnsCheck = await query(`
+            SELECT column_name, data_type, is_nullable
+            FROM information_schema.columns 
+            WHERE table_name = 'team_awards'
+            ORDER BY ordinal_position
+        `);
+        results.team_awards_columns = awardsColumnsCheck;
+
+        // Check indexes
+        const indexesCheck = await query(`
+            SELECT indexname, indexdef
+            FROM pg_indexes 
+            WHERE tablename = 'team_awards'
+        `);
+        results.team_awards_indexes = indexesCheck;
+
+        // Check view
+        const viewCheck = await query(`
+            SELECT table_name, table_type
+            FROM information_schema.tables 
+            WHERE table_name = 'event_awards_summary'
+        `);
+        results.event_awards_summary_view = viewCheck.length > 0 ? viewCheck[0] : null;
+
+        // Test inserting a team with mentor
+        const testTeam = await query(`
+            SELECT id, name, mentor_name 
+            FROM teams 
+            LIMIT 1
+        `);
+        results.sample_team = testTeam.length > 0 ? testTeam[0] : null;
+
+        // Summary
+        results.summary = {
+            mentor_name_exists: !!results.mentor_name_column,
+            team_awards_exists: !!results.team_awards_table,
+            view_exists: !!results.event_awards_summary_view,
+            indexes_count: results.team_awards_indexes.length,
+            columns_count: results.team_awards_columns.length
+        };
+
+        res.json({
+            message: 'Schema verification complete',
+            verified: results.summary.mentor_name_exists && 
+                     results.summary.team_awards_exists && 
+                     results.summary.view_exists,
+            details: results
+        });
+    } catch (error: any) {
+        console.error('❌ Verification error:', error);
+        res.status(500).json({ 
+            error: 'Failed to verify schema',
+            details: error.message 
+        });
+    }
+});
+
+/**
+ * Run mentor and awards migration
+ * Adds mentor_name to teams and creates team_awards table
+ */
+router.post('/migrate-mentor-awards', async (_req, res) => {
+    try {
+        console.log('🔧 Running mentor and awards migration...');
+
+        await transaction(async (client) => {
+            // Check if mentor_name column already exists
+            const checkMentor = await client.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'teams' AND column_name = 'mentor_name'
+            `);
+
+            if (checkMentor.rows.length === 0) {
+                console.log('Adding mentor_name column to teams table...');
+                await client.query(`
+                    ALTER TABLE teams ADD COLUMN mentor_name VARCHAR(255)
+                `);
+                await client.query(`
+                    COMMENT ON COLUMN teams.mentor_name IS 'Name of team mentor/advisor (optional)'
+                `);
+            } else {
+                console.log('⚠️  mentor_name column already exists, skipping...');
+            }
+
+            // Check if team_awards table already exists
+            const checkAwards = await client.query(`
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_name = 'team_awards'
+            `);
+
+            if (checkAwards.rows.length === 0) {
+                console.log('Creating team_awards table...');
+                await client.query(`
+                    CREATE TABLE team_awards (
+                        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                        event_id UUID REFERENCES events(id) ON DELETE CASCADE,
+                        team_id UUID REFERENCES teams(id) ON DELETE CASCADE,
+                        award_type VARCHAR(50) NOT NULL CHECK (award_type IN (
+                            'first_place',
+                            'second_place', 
+                            'third_place',
+                            'most_feasible',
+                            'best_prototype',
+                            'best_video',
+                            'best_presentation'
+                        )),
+                        awarded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        awarded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        UNIQUE(event_id, award_type)
+                    )
+                `);
+
+                await client.query(`
+                    COMMENT ON TABLE team_awards IS 'Official event rankings and special awards assigned by admins'
+                `);
+                await client.query(`
+                    COMMENT ON COLUMN team_awards.award_type IS 'Type of award: first_place, second_place, third_place, most_feasible, best_prototype, best_video, best_presentation'
+                `);
+                await client.query(`
+                    COMMENT ON COLUMN team_awards.awarded_by IS 'Admin user who assigned the award'
+                `);
+
+                console.log('Creating indexes...');
+                await client.query(`
+                    CREATE INDEX idx_team_awards_event ON team_awards(event_id)
+                `);
+                await client.query(`
+                    CREATE INDEX idx_team_awards_team ON team_awards(team_id)
+                `);
+                await client.query(`
+                    CREATE INDEX idx_team_awards_type ON team_awards(event_id, award_type)
+                `);
+
+                console.log('Creating event_awards_summary view...');
+                await client.query(`
+                    CREATE VIEW event_awards_summary AS
+                    SELECT 
+                        e.id as event_id,
+                        e.name as event_name,
+                        ta.award_type,
+                        t.id as team_id,
+                        t.name as team_name,
+                        t.project_title,
+                        ta.awarded_at,
+                        u.name as awarded_by_name
+                    FROM events e
+                    LEFT JOIN team_awards ta ON e.id = ta.event_id
+                    LEFT JOIN teams t ON ta.team_id = t.id
+                    LEFT JOIN users u ON ta.awarded_by = u.id
+                    ORDER BY e.id, 
+                        CASE ta.award_type
+                            WHEN 'first_place' THEN 1
+                            WHEN 'second_place' THEN 2
+                            WHEN 'third_place' THEN 3
+                            WHEN 'most_feasible' THEN 4
+                            WHEN 'best_prototype' THEN 5
+                            WHEN 'best_video' THEN 6
+                            WHEN 'best_presentation' THEN 7
+                        END
+                `);
+
+                await client.query(`
+                    COMMENT ON VIEW event_awards_summary IS 'Summary of all awards for all events with team details'
+                `);
+            } else {
+                console.log('⚠️  team_awards table already exists, skipping...');
+            }
+
+            console.log('✅ Migration completed successfully!');
+        });
+
+        return res.json({
+            message: 'Mentor and awards migration completed successfully',
+            changes: [
+                'Added mentor_name column to teams table',
+                'Created team_awards table',
+                'Created indexes for team_awards',
+                'Created event_awards_summary view'
+            ],
+            timestamp: new Date().toISOString()
+        });
+    } catch (error: any) {
+        console.error('❌ Migration error:', error);
+        return res.status(500).json({ 
+            error: `Failed to run migration: ${error.message}`,
+            details: error.message,
+            stack: error.stack
+        });
+    }
+});
+
+/**
+ * Run database migration
+ * Executes a migration file from database/migrations/
+ * Usage: POST /admin/migrate/add_mentor_and_awards
+ */
+router.post('/migrate/:migrationName', async (req, res) => {
+    try {
+        const { migrationName } = req.params;
+        
+        if (!migrationName) {
+            return res.status(400).json({ error: 'Migration name required' });
+        }
+
+        console.log(`🔧 Running migration: ${migrationName}`);
+
+        // Read migration file from database/migrations/
+        const fs = require('fs');
+        const path = require('path');
+        const migrationPath = path.join(__dirname, '../../../database/migrations', `${migrationName}.sql`);
+        
+        if (!fs.existsSync(migrationPath)) {
+            return res.status(404).json({ 
+                error: `Migration file not found: ${migrationName}.sql`,
+                path: migrationPath
+            });
+        }
+
+        const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+
+        await transaction(async (client) => {
+            // Split SQL into individual statements
+            const statements = migrationSQL
+                .split(';')
+                .map((s: string) => s.trim())
+                .filter((s: string) => s && !s.startsWith('--') && s.length > 0);
+
+            console.log(`Executing ${statements.length} SQL statements...`);
+
+            for (let i = 0; i < statements.length; i++) {
+                const statement = statements[i];
+                console.log(`Statement ${i + 1}/${statements.length}:`, statement.substring(0, 100) + '...');
+                await client.query(statement);
+            }
+
+            console.log('✅ Migration completed successfully!');
+        });
+
+        return res.json({
+            message: `Migration '${migrationName}' completed successfully`,
+            migration: migrationName,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error: any) {
+        console.error('❌ Migration error:', error);
+        return res.status(500).json({ 
+            error: `Failed to run migration: ${error.message}`,
+            details: error.message,
+            stack: error.stack
+        });
+    }
+});
+
+/**
  * Delete test users
  * TEMPORARY: Remove test accounts from database
  */

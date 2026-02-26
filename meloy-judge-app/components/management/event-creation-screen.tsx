@@ -9,7 +9,7 @@ import { ArrowLeft, Save, User, Loader2, Sparkles } from "lucide-react"
 import { EventDetailsSection } from "./event-creation/event-details-section"
 import { SponsorSection } from "./event-creation/sponsor-section"
 import { JudgeAccountSection } from "./event-creation/judge-account-section"
-import { createEvent, updateJudgeAccount } from "@/lib/api/events"
+import { createEvent, updateEvent, updateJudgeAccount } from "@/lib/api/events"
 import { createSponsor } from "@/lib/api/sponsors"
 import { getCurrentUser } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
@@ -102,14 +102,9 @@ export function EventCreationScreen({ onBack }: EventCreationScreenProps) {
         text_color: textColor,
       })
 
-      // Step 4: Update event with sponsor_id
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/events/${event.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await (await fetch('/api/token')).json().then(d => d.token)}`,
-        },
-        body: JSON.stringify({ sponsor_id: sponsor.id }),
+      // Step 4: Update event with sponsor_id so it shows in event manager
+      await updateEvent(event.id, {
+        sponsor_id: sponsor.id,
       })
 
       // Step 5: Navigate back to admin page with success message

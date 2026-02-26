@@ -16,8 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { UserPlus, Plus, Trash2, Mail, User, AlertCircle, Edit, Search, Check, Loader2 } from "lucide-react"
 import type { JudgeProfile } from "@/lib/api/judges"
-import type { User as UserType } from "@/lib/types/api"
-import { getUsers } from "@/lib/api/admin"
+import { getUsers, type User as UserType } from "@/lib/api/users"
 
 interface JudgesTabProps {
   judgeProfiles: JudgeProfile[]
@@ -57,7 +56,7 @@ export function JudgesTab({
       setLoadingUsers(true)
       const { users } = await getUsers()
       // Filter to only show users with 'judge' role
-      const judges = users.filter(user => user.role === 'judge')
+      const judges = users.filter((user: UserType) => user.role === 'judge')
       setJudgeUsers(judges)
     } catch (error) {
       console.error('Failed to load judge users:', error)
@@ -114,7 +113,7 @@ export function JudgesTab({
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
                 <User className="h-6 w-6 text-white" />
               </div>
-              Dedicated Judge Account
+              Dedicated Event Account
             </CardTitle>
             <CardDescription className="text-base text-white/80 mt-2">
               All judge profiles for this event share one login account

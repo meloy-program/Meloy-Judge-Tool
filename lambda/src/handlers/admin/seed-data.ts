@@ -90,7 +90,7 @@ export const handler = async (
 
       // Get rubric criteria IDs
       const criteria = await client.query('SELECT id FROM rubric_criteria ORDER BY display_order');
-      const [comm_id, fund_id, pres_id, cohe_id] = criteria.rows.map(r => r.id);
+      const [comm_id, fund_id, pres_id, cohe_id] = criteria.rows.map((r: any) => r.id);
 
       // Insert score submissions and scores for Code Warriors (fully scored)
       const sub1 = await client.query(`

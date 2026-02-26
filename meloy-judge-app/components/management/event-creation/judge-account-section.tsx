@@ -13,8 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { User, Search, Check, Loader2, AlertCircle, Plus } from "lucide-react"
-import type { User as UserType } from "@/lib/types/api"
-import { getUsers } from "@/lib/api/users"
+import { getUsers, type User as UserType } from "@/lib/api/users"
 
 interface JudgeAccountSectionProps {
   selectedJudgeEmail: string | null
@@ -95,10 +94,10 @@ export function JudgeAccountSection({
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
                 <User className="h-6 w-6 text-white" />
               </div>
-              Dedicated Judge Account
+              Dedicated Event Account
             </CardTitle>
             <CardDescription className="text-base text-white/80 mt-2">
-              Select a user account with "judge" role to be the dedicated judge account for this event
+              Select a user account with "judge" role to be the dedicated event account for this event
             </CardDescription>
           </div>
         </CardHeader>

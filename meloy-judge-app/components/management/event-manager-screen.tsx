@@ -95,13 +95,21 @@ export function EventManagerScreen({ eventId, userId, onBack, onSave, userName, 
         setEventDescription(eventData.description)
         
         // Set sponsor data if exists
-        if (eventData.sponsor) {
+        if (eventData.sponsor && eventData.sponsor.name) {
           setSponsorId(eventData.sponsor_id)
-          setSponsorName(eventData.sponsor.name || "")
+          setSponsorName(eventData.sponsor.name)
           setSponsorLogo(eventData.sponsor.logo_url)
           setPrimaryColor(eventData.sponsor.primary_color || "#500000")
           setSecondaryColor(eventData.sponsor.secondary_color || "#FFFFFF")
           setTextColor(eventData.sponsor.text_color || "#FFFFFF")
+        } else {
+          // Set default Meloy Program branding if no sponsor
+          setSponsorId(null)
+          setSponsorName("Meloy Program")
+          setSponsorLogo("/meloyprogrammaroon.png")
+          setPrimaryColor("#500000")
+          setSecondaryColor("#1f0000")
+          setTextColor("#FFFFFF")
         }
         
         // Load judge profiles
@@ -230,14 +238,34 @@ export function EventManagerScreen({ eventId, userId, onBack, onSave, userName, 
         text_color: textColor,
       }
       
+      let updatedSponsorId = sponsorId
+      
       if (sponsorId) {
         await updateSponsor(sponsorId, sponsorData)
       } else {
-        const { sponsor } = await createSponsor(sponsorData)
+        // Include event_id when creating new sponsor
+        const { sponsor } = await createSponsor({
+          event_id: eventId,
+          ...sponsorData
+        })
+        updatedSponsorId = sponsor.id
         setSponsorId(sponsor.id)
         await updateEvent(eventId, {
           sponsor_id: sponsor.id,
         })
+      }
+      
+      // Reload event data to get updated sponsor information
+      const { event: updatedEvent } = await getEvent(eventId)
+      setEvent(updatedEvent)
+      
+      // Update sponsor state with fresh data
+      if (updatedEvent.sponsor && updatedEvent.sponsor.name) {
+        setSponsorName(updatedEvent.sponsor.name)
+        setSponsorLogo(updatedEvent.sponsor.logo_url)
+        setPrimaryColor(updatedEvent.sponsor.primary_color || "#500000")
+        setSecondaryColor(updatedEvent.sponsor.secondary_color || "#FFFFFF")
+        setTextColor(updatedEvent.sponsor.text_color || "#FFFFFF")
       }
       
       alert('Sponsor settings saved successfully!')
