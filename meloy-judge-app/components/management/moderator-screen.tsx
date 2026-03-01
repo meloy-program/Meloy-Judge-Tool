@@ -139,10 +139,16 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
           getTeamScores(eventId)
         ])
         setEvent(eventData.event)
-        setTeams(scoresData.teams.map((t: any) => ({
-          ...t,
-          status: t.status as TeamStatus
-        })))
+        
+        // Sort teams once by name (alphabetically) and maintain that order
+        const sortedTeams = scoresData.teams
+          .map((t: any) => ({
+            ...t,
+            status: t.status as TeamStatus
+          }))
+          .sort((a: any, b: any) => a.name.localeCompare(b.name))
+        
+        setTeams(sortedTeams)
         setJudges(scoresData.judges)
         const phase = eventData.event.judging_phase || 'in-progress'
         setEventStatus(phase as 'not-started' | 'in-progress' | 'ended')
@@ -443,7 +449,7 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
                       display: none;
                     }
                   `}</style>
-                {teams.sort((a, b) => a.order - b.order).map((team) => {
+                {teams.map((team) => {
                   const isCompleted = team.status === "completed"
                   const isActive = team.status === "active"
                   const isWaiting = team.status === "waiting"
@@ -554,7 +560,7 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
                     </tr>
                   </thead>
                   <tbody>
-                    {teams.sort((a, b) => getTeamTotal(b) - getTeamTotal(a)).map((team, index) => {
+                    {[...teams].sort((a, b) => getTeamTotal(b) - getTeamTotal(a)).map((team, index) => {
                       const total = getTeamTotal(team)
                       const percentage = Math.round((total / 400) * 100)
                       return (
