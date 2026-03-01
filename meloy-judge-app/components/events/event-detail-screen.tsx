@@ -329,11 +329,15 @@ export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNa
               .map((team, index) => {
                 const isScored = team.has_current_user_scored ?? false;
                 const isDone = team.status === 'done' || team.status === 'completed';
+                const isActive = team.status === 'active';
                 
-                // Judges can always edit scores for teams they've scored or that are done
+                // Judges can click on:
+                // 1. Active teams (to score for first time)
+                // 2. Teams they've already scored (to edit)
+                // 3. Done/completed teams (to edit)
                 // Admins can always click any team
-                const canEdit = isAdmin || isScored || isDone;
-                const isGreyedOut = false; // Never grey out - judges can always edit
+                const canClick = isAdmin || isActive || isScored || isDone;
+                const isGreyedOut = false; // Never grey out
                 
                 const truncatedDescription = team.description && team.description.length > 120
                   ? team.description.substring(0, 120) + '...'
@@ -350,9 +354,9 @@ export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNa
                       background: 'linear-gradient(to bottom, #ffffff, #f1f5f9)',
                       animationDelay: `${index * 50}ms`
                     }}
-                    onClick={() => canEdit && onSelectTeam(team.id)}
+                    onClick={() => canClick && onSelectTeam(team.id)}
                     role="button"
-                    tabIndex={canEdit ? 0 : -1}
+                    tabIndex={canClick ? 0 : -1}
                     onKeyDown={(event) => {
                       if (!isGreyedOut && (event.key === "Enter" || event.key === " ")) {
                         event.preventDefault()
