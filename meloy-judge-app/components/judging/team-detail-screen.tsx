@@ -85,7 +85,49 @@ export function TeamDetailScreen({ teamId, judgeId, onBack, judgeName, isAdmin =
           }),
           {},
         )
-        setScores(initialScores)
+        
+        // Fetch existing scores if judge has already scored this team
+        if (judgeId) {
+          try {
+            const { getExistingScores } = await import('@/lib/api/scores')
+            const existingData = await getExistingScores(teamId, judgeId)
+            
+            if (existingData.hasExistingScores) {
+              // Pre-fill scores
+              const existingScores = existingData.scores.reduce(
+                (acc, score) => ({
+                  ...acc,
+                  [score.criteriaId]: score.score,
+                }),
+                {},
+              )
+              setScores({ ...initialScores, ...existingScores })
+              
+              // Pre-fill reflections
+              const existingReflections = existingData.scores.reduce(
+                (acc, score) => ({
+                  ...acc,
+                  [score.criteriaId]: score.reflection || '',
+                }),
+                {},
+              )
+              setReflections(existingReflections)
+              
+              // Pre-fill comments
+              if (existingData.comments) {
+                setComments(existingData.comments)
+              }
+            } else {
+              setScores(initialScores)
+            }
+          } catch (err) {
+            console.error('Failed to fetch existing scores:', err)
+            // If fetching existing scores fails, just use initial scores
+            setScores(initialScores)
+          }
+        } else {
+          setScores(initialScores)
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load team data')
       } finally {
@@ -93,7 +135,7 @@ export function TeamDetailScreen({ teamId, judgeId, onBack, judgeName, isAdmin =
       }
     }
     fetchData()
-  }, [teamId])
+  }, [teamId, judgeId])
 
   // Get sponsor data with fallback logic
   const getSponsorData = () => {
@@ -485,35 +527,10 @@ export function TeamDetailScreen({ teamId, judgeId, onBack, judgeName, isAdmin =
       {/* Submit Confirmation Dialog */}
       <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
         <AlertDialogContent className="max-w-2xl rounded-3xl border-2 border-slate-200 bg-white/90 backdrop-blur-xl shadow-2xl">
-          <AlertDialogHeader className="p-10 pb-6">
-            <AlertDialogTitle className="text-3xl font-bold text-slate-900">Submit Scores?</AlertDialogTitle>
+          <AlertDialogHeader className="p-10 pb-6 text-center">
+            <AlertDialogTitle className="text-3xl font-bold text-slate-900 text-center">Submit Scores?</AlertDialogTitle>
             <AlertDialogDescription className="mt-4 text-xl text-slate-600 leading-relaxed">
-              Are you sure you want to submit your evaluation for {team.name}? This will finalize your scores.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="p-10 pt-0 flex gap-4">
-            <AlertDialogCancel
-              className="h-16 flex-1 rounded-2xl border-2 border-slate-300 bg-white text-lg font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 hover:border-slate-400"
-            >
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmSubmit}
-              className="h-16 flex-1 rounded-2xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
-            >
-              Yes, Submit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Submit Confirmation Dialog */}
-      <AlertDialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-        <AlertDialogContent className="max-w-2xl rounded-3xl border-2 border-slate-200 bg-white/90 backdrop-blur-xl shadow-2xl">
-          <AlertDialogHeader className="p-10 pb-6">
-            <AlertDialogTitle className="text-3xl font-bold text-slate-900">Submit Scores?</AlertDialogTitle>
-            <AlertDialogDescription className="mt-4 text-xl text-slate-600 leading-relaxed">
-              Are you sure you want to submit your evaluation for {team.name}? This will finalize your scores.
+              Are you sure you want to submit your evaluation? You can edit your scores later if needed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="p-10 pt-0 flex gap-4">

@@ -74,3 +74,24 @@ export async function updateEventPhase(
 ): Promise<{ event: any }> {
     return patch(`/events/${eventId}/phase`, { judging_phase });
 }
+
+/**
+ * Get top 3 awards for an event
+ */
+export async function getEventAwards(eventId: string): Promise<{
+    awards: Array<{ award_type: string; team_id: string; team_name: string }>;
+}> {
+    return get(`/events/${eventId}/awards`);
+}
+
+/**
+ * Assign top 3 awards for an event (moderator/admin only)
+ */
+export async function assignTop3Awards(
+    eventId: string,
+    firstPlace: string,
+    secondPlace: string,
+    thirdPlace: string
+): Promise<{ message: string }> {
+    return post(`/events/${eventId}/awards`, { firstPlace, secondPlace, thirdPlace });
+}

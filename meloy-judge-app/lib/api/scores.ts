@@ -25,6 +25,23 @@ export async function submitScore(
 }
 
 /**
+ * Get existing scores for a team by a judge (for editing)
+ * @param teamId - The team ID
+ * @param judgeId - The judge profile ID (not user ID)
+ */
+export async function getExistingScores(
+    teamId: string,
+    judgeId: string
+): Promise<{
+    scores: Array<{ criteriaId: string; score: number; reflection: string | null }>;
+    comments: string | null;
+    timeSpentSeconds: number;
+    hasExistingScores: boolean;
+}> {
+    return get(`/scores/${teamId}/${judgeId}`);
+}
+
+/**
  * Submit judge heartbeat to maintain online status
  * @param eventId - The event ID
  * @param judgeId - The judge profile ID (not user ID)

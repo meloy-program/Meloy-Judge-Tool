@@ -55,6 +55,20 @@ async function handleProxy(req: NextRequest, path: string[], method: string) {
             return new NextResponse(null, { status: 204 });
         }
 
+        // Check if response is binary (Excel file) or CSV
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('spreadsheet') || contentType?.includes('octet-stream') || contentType?.includes('text/csv')) {
+            const buffer = await response.arrayBuffer();
+            return new NextResponse(buffer, {
+                status: response.status,
+                headers: {
+                    'Content-Type': contentType,
+                    'Content-Disposition': response.headers.get('content-disposition') || '',
+                },
+            });
+        }
+
+        // Handle JSON responses
         const data = await response.json().catch(() => ({}));
         return NextResponse.json(data, { status: response.status });
 

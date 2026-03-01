@@ -42,11 +42,18 @@ export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNa
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedTeam, setExpandedTeam] = useState<Team | null>(null)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        setLoading(true)
+        // Only show loading spinner on initial load, not on background refreshes
+        if (isInitialLoad) {
+          setLoading(true)
+        } else {
+          setIsRefreshing(true)
+        }
         setError(null)
         const [eventData, teamsData] = await Promise.all([
           getEvent(eventId),
@@ -62,11 +69,22 @@ export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNa
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load event data')
       } finally {
-        setLoading(false)
+        if (isInitialLoad) {
+          setLoading(false)
+          setIsInitialLoad(false)
+        }
+        setIsRefreshing(false)
       }
     }
     fetchData()
-  }, [eventId, judgeId])
+
+    // Real-time auto-refresh every 5 seconds to keep team status up-to-date
+    // When moderator changes team status, judges will see updates automatically
+    const intervalId = setInterval(fetchData, 5000)
+
+    // Cleanup on unmount
+    return () => clearInterval(intervalId)
+  }, [eventId, judgeId, isAdmin, isInitialLoad])
 
   // Determine event type and labels from RDS data
   const isPWSEvent = event?.event_type?.includes("problems-worth-solving") ?? false
@@ -201,7 +219,7 @@ export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNa
                     className="flex items-center gap-3 px-4 py-3 text-base font-medium text-slate-700 cursor-pointer rounded-xl hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
                   >
                     <BarChart3 className="h-5 w-5" />
-                    <span>View Leaderboard</span>
+                    <span>View Summary</span>
                   </DropdownMenuItem>
                   {isAdmin && (
                     <>
@@ -311,7 +329,12 @@ export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNa
               .map((team, index) => {
                 const isScored = team.has_current_user_scored ?? false;
                 const isDone = team.status === 'done' || team.status === 'completed';
-                const isGreyedOut = isScored || isDone;
+                
+                // Judges can always edit scores for teams they've scored or that are done
+                // Admins can always click any team
+                const canEdit = isAdmin || isScored || isDone;
+                const isGreyedOut = false; // Never grey out - judges can always edit
+                
                 const truncatedDescription = team.description && team.description.length > 120
                   ? team.description.substring(0, 120) + '...'
                   : team.description;
@@ -327,9 +350,9 @@ export function EventDetailScreen({ eventId, judgeId, onSelectTeam, onBack, onNa
                       background: 'linear-gradient(to bottom, #ffffff, #f1f5f9)',
                       animationDelay: `${index * 50}ms`
                     }}
-                    onClick={() => !isGreyedOut && onSelectTeam(team.id)}
+                    onClick={() => canEdit && onSelectTeam(team.id)}
                     role="button"
-                    tabIndex={isGreyedOut ? -1 : 0}
+                    tabIndex={canEdit ? 0 : -1}
                     onKeyDown={(event) => {
                       if (!isGreyedOut && (event.key === "Enter" || event.key === " ")) {
                         event.preventDefault()

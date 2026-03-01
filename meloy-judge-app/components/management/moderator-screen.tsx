@@ -18,6 +18,7 @@ import {
   Loader2,
   ChevronRight,
   ChevronLeft,
+  Trophy,
 } from "lucide-react"
 import {
   AlertDialog,
@@ -30,8 +31,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { getEvent, getTeamScores, updateTeamStatus, updateEventPhase } from "@/lib/api"
+import { getEvent, getTeamScores, updateTeamStatus, updateEventPhase, getEventAwards, assignTop3Awards } from "@/lib/api"
 import type { Event } from "@/lib/types/api"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface ModeratorScreenProps {
   eventId: string
@@ -75,6 +83,13 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
   const [showLeftScroll, setShowLeftScroll] = useState(false)
   const [showRightScroll, setShowRightScroll] = useState(false)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
+  
+  // Awards state
+  const [firstPlace, setFirstPlace] = useState<string>("")
+  const [secondPlace, setSecondPlace] = useState<string>("")
+  const [thirdPlace, setThirdPlace] = useState<string>("")
+  const [isSavingAwards, setIsSavingAwards] = useState(false)
+  const [awardsMessage, setAwardsMessage] = useState<string | null>(null)
 
   // Handle scroll indicators
   useEffect(() => {
@@ -152,6 +167,27 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
     return () => clearInterval(intervalId)
   }, [eventId, isInitialLoad])
 
+  // Fetch awards when judging ends
+  useEffect(() => {
+    async function fetchAwards() {
+      if (eventStatus === 'ended') {
+        try {
+          const { awards } = await getEventAwards(eventId)
+          const first = awards.find(a => a.award_type === 'first_place')
+          const second = awards.find(a => a.award_type === 'second_place')
+          const third = awards.find(a => a.award_type === 'third_place')
+          
+          setFirstPlace(first?.team_id || '')
+          setSecondPlace(second?.team_id || '')
+          setThirdPlace(third?.team_id || '')
+        } catch (err) {
+          console.error('Failed to fetch awards:', err)
+        }
+      }
+    }
+    fetchAwards()
+  }, [eventId, eventStatus])
+
   // Get sponsor data with fallback logic
   const getSponsorData = () => {
     return event?.sponsor_id && event.sponsor ? {
@@ -196,6 +232,47 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
     } catch (err) {
       console.error('Failed to end judging:', err)
       // Optionally show error to user
+    }
+  }
+
+  const handleSubmitAwards = async () => {
+    // Determine which places are required based on team count
+    const requiredPlaces = Math.min(teams.length, 3);
+    
+    if (!firstPlace) {
+      setAwardsMessage('Please select first place')
+      return
+    }
+
+    if (requiredPlaces >= 2 && !secondPlace) {
+      setAwardsMessage('Please select second place')
+      return
+    }
+
+    if (requiredPlaces >= 3 && !thirdPlace) {
+      setAwardsMessage('Please select third place')
+      return
+    }
+
+    // Check for duplicates among selected places
+    const selectedPlaces = [firstPlace, secondPlace, thirdPlace].filter(Boolean);
+    const uniquePlaces = new Set(selectedPlaces);
+    if (uniquePlaces.size !== selectedPlaces.length) {
+      setAwardsMessage('Each place must be a different team')
+      return
+    }
+
+    try {
+      setIsSavingAwards(true)
+      setAwardsMessage(null)
+      await assignTop3Awards(eventId, firstPlace, secondPlace || '', thirdPlace || '')
+      setAwardsMessage('Awards saved successfully!')
+      setTimeout(() => setAwardsMessage(null), 3000)
+    } catch (err) {
+      console.error('Failed to assign awards:', err)
+      setAwardsMessage('Failed to save awards. Please try again.')
+    } finally {
+      setIsSavingAwards(false)
     }
   }
 
@@ -376,21 +453,10 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
                       key={team.id}
                       className="group relative shrink-0 w-[320px] overflow-visible rounded-[20px] border-2 border-primary/20 bg-linear-to-br from-primary/5 to-white p-5 transition-all hover:-translate-y-1 hover:shadow-xl hover:border-primary/30"
                     >
-                      {/* Order badge with status indicator */}
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-linear-to-br from-primary to-[#3d0000] font-bold text-white shadow-md">
-                          <span className="text-xl">{team.order}</span>
-                          <div className={`absolute -top-1 -right-1 h-4 w-4 rounded-full border-2 border-white ${isCompleted
-                            ? "bg-emerald-400"
-                            : isActive
-                              ? "bg-sky-400 animate-pulse"
-                              : "bg-amber-400"
-                            }`} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-lg text-slate-900 truncate">{team.name}</h4>
-                          <p className="text-sm text-slate-600 truncate">{team.projectTitle}</p>
-                        </div>
+                      {/* Team info */}
+                      <div className="flex flex-col items-center text-center mb-4">
+                        <h4 className="font-bold text-lg text-slate-900">{team.name}</h4>
+                        <p className="text-sm text-slate-600">{team.projectTitle}</p>
                       </div>
 
                       {/* Status controls */}
@@ -584,12 +650,20 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
                     End Judging
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="max-w-2xl rounded-3xl border-2 border-white/30 bg-white/90 backdrop-blur-xl shadow-2xl p-0">
+                <AlertDialogContent className="max-w-2xl rounded-3xl border-2 border-slate-200 bg-white/90 backdrop-blur-xl shadow-2xl p-0">
                   <AlertDialogHeader className="p-8 pb-4">
                     <AlertDialogTitle className="text-3xl font-semibold text-slate-900">End Judging?</AlertDialogTitle>
                     <AlertDialogDescription className="mt-4 text-xl text-slate-600 leading-relaxed">
-                      Are you sure you want to end the judging phase? This action cannot be undone and will finalize the event results.
+                      Are you sure you want to end the judging phase?
                     </AlertDialogDescription>
+                    <div className="mt-4 rounded-xl bg-blue-50 border-2 border-blue-200 p-4">
+                      <p className="text-base font-semibold text-blue-700">
+                        Note: This action cannot be undone
+                      </p>
+                      <p className="text-sm text-blue-600 mt-2">
+                        Once judging ends, team status controls will be disabled and you can assign the top 3 awards.
+                      </p>
+                    </div>
                   </AlertDialogHeader>
                   <AlertDialogFooter className="flex-col gap-3 p-8 pt-4 sm:flex-row">
                     <AlertDialogCancel className="h-16 flex-1 rounded-2xl border-2 border-slate-300 text-lg font-semibold text-slate-600 hover:border-primary/40 hover:bg-primary/5">
@@ -599,11 +673,177 @@ export function ModeratorScreen({ eventId, onBack, userName }: ModeratorScreenPr
                       onClick={handleEndJudging}
                       className="h-16 flex-1 rounded-2xl bg-primary text-lg font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl"
                     >
-                      End Judging
+                      Yes, End Judging
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            </CardContent>
+          </Card>
+
+          {/* Top 3 Awards - Full Width */}
+          <Card className={`relative mt-6 overflow-hidden rounded-[28px] border-2 border-primary/25 shadow-lg transition-all ${
+            eventStatus === 'ended' ? 'bg-white/95' : 'bg-white/95 opacity-50'
+          }`}>
+            <CardHeader className="px-6 pt-5 pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-primary/20 to-primary/10">
+                    <Trophy className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl font-semibold text-slate-900">Top 3 Awards</CardTitle>
+                    <CardDescription className="text-base text-slate-600">
+                      {eventStatus === 'ended' 
+                        ? 'Assign official rankings for this event'
+                        : 'Available after judging ends'
+                      }
+                    </CardDescription>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="px-6 pb-5 pt-2">
+              <div className="space-y-3">
+                {/* Show message if less than 3 teams */}
+                {teams.length < 3 && teams.length > 0 && (
+                  <div className="rounded-xl bg-blue-50 border-2 border-blue-200 p-3 text-center text-sm font-medium text-blue-700">
+                    {teams.length === 1 
+                      ? 'Only 1 team - assign 1st place only'
+                      : 'Only 2 teams - assign 1st and 2nd place'
+                    }
+                  </div>
+                )}
+
+                {/* First Place - Always shown if there are teams */}
+                {teams.length >= 1 && (
+                  <div className="group relative overflow-hidden rounded-2xl border-2 border-primary/20 bg-linear-to-br from-amber-50 to-white p-4 transition-all hover:border-primary/30 hover:shadow-md">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 font-bold text-white shadow-lg">
+                        <span className="text-2xl">1st</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-amber-700 mb-1">First Place</p>
+                        <Select
+                          value={firstPlace}
+                          onValueChange={setFirstPlace}
+                          disabled={eventStatus !== 'ended'}
+                        >
+                          <SelectTrigger className="h-11 rounded-xl border-2 border-slate-200 bg-white text-base font-medium hover:border-primary/30 disabled:opacity-50">
+                            <SelectValue placeholder="Select team" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teams.map((team) => (
+                              <SelectItem key={team.id} value={team.id} className="text-base">
+                                {team.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Second Place - Only shown if 2+ teams */}
+                {teams.length >= 2 && (
+                  <div className="group relative overflow-hidden rounded-2xl border-2 border-primary/20 bg-linear-to-br from-slate-50 to-white p-4 transition-all hover:border-primary/30 hover:shadow-md">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-300 to-slate-400 font-bold text-white shadow-lg">
+                        <span className="text-2xl">2nd</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Second Place</p>
+                        <Select
+                          value={secondPlace}
+                          onValueChange={setSecondPlace}
+                          disabled={eventStatus !== 'ended'}
+                        >
+                          <SelectTrigger className="h-11 rounded-xl border-2 border-slate-200 bg-white text-base font-medium hover:border-primary/30 disabled:opacity-50">
+                            <SelectValue placeholder="Select team" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teams.map((team) => (
+                              <SelectItem key={team.id} value={team.id} className="text-base">
+                                {team.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Third Place - Only shown if 3+ teams */}
+                {teams.length >= 3 && (
+                  <div className="group relative overflow-hidden rounded-2xl border-2 border-primary/20 bg-linear-to-br from-amber-50/50 to-white p-4 transition-all hover:border-primary/30 hover:shadow-md">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-600 to-amber-700 font-bold text-white shadow-lg">
+                        <span className="text-2xl">3rd</span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs font-semibold uppercase tracking-wider text-amber-800 mb-1">Third Place</p>
+                        <Select
+                          value={thirdPlace}
+                          onValueChange={setThirdPlace}
+                          disabled={eventStatus !== 'ended'}
+                        >
+                          <SelectTrigger className="h-11 rounded-xl border-2 border-slate-200 bg-white text-base font-medium hover:border-primary/30 disabled:opacity-50">
+                            <SelectValue placeholder="Select team" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {teams.map((team) => (
+                              <SelectItem key={team.id} value={team.id} className="text-base">
+                                {team.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* No teams message */}
+                {teams.length === 0 && (
+                  <div className="rounded-xl bg-slate-50 border-2 border-slate-200 p-8 text-center">
+                    <p className="text-base text-slate-600">No teams in this event</p>
+                  </div>
+                )}
+
+                {/* Submit Button */}
+                <div className="pt-3">
+                  <Button
+                    onClick={handleSubmitAwards}
+                    disabled={eventStatus !== 'ended' || isSavingAwards}
+                    className="h-14 w-full rounded-2xl bg-gradient-to-b from-primary to-[#3d0000] text-base font-bold text-white shadow-xl transition-all hover:-translate-y-0.5 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  >
+                    {isSavingAwards ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Saving Awards...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-5 w-5" />
+                        Save Top 3 Rankings
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Success/Error Message */}
+                {awardsMessage && (
+                  <div className={`rounded-xl p-4 text-center text-sm font-semibold ${
+                    awardsMessage.includes('success') 
+                      ? 'bg-emerald-50 text-emerald-700 border-2 border-emerald-200'
+                      : 'bg-red-50 text-red-700 border-2 border-red-200'
+                  }`}>
+                    {awardsMessage}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>

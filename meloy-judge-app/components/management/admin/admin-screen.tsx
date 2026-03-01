@@ -244,7 +244,7 @@ export function AdminScreen({ onBack, onCreateEvent, onManageEvent }: AdminScree
               </TabsContent>
 
               <TabsContent value="insights" className="space-y-8">
-                <AdminEventsRecapTab eventHistory={eventHistoryData} />
+                <AdminEventsRecapTab />
               </TabsContent>
             </div>
           </Tabs>

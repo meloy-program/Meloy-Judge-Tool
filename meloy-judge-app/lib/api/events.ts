@@ -169,3 +169,91 @@ export async function updateJudgeAccount(
 ): Promise<{ event: Event }> {
     return put<{ event: Event }>(`/events/${eventId}/judge-account`, { userEmail });
 }
+
+/**
+ * Export event results to Excel (admin only)
+ * Downloads an Excel file with judge names, teams, scores, and awards
+ * @param eventId - The event ID
+ * @param eventName - The event name (used for filename)
+ */
+export async function exportEventToExcel(
+    eventId: string,
+    eventName: string
+): Promise<void> {
+    try {
+        // Don't use the API client - make a direct fetch request to handle binary data
+        const response = await fetch(`/api/proxy/events/${eventId}/export-excel`, {
+            method: 'GET',
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to export event data');
+        }
+
+        // Get the blob from response (binary data)
+        const blob = await response.blob();
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${eventName.replace(/[^a-z0-9]/gi, '_')}_Results.csv`;
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Export error:', error);
+        throw error;
+    }
+}
+
+/**
+ * Get completed events with detailed scoring data for recap view (admin only)
+ * Returns events with teams, judges, scores, and awards
+ */
+export async function getCompletedEventsRecap(): Promise<{
+    events: Array<{
+        id: string;
+        name: string;
+        event_type: string;
+        start_date: string;
+        end_date: string;
+        location: string;
+        status: string;
+        judging_phase: string;
+        sponsor?: {
+            name: string | null;
+            logo_url: string | null;
+            primary_color: string | null;
+            secondary_color: string | null;
+            text_color: string | null;
+        };
+        teams: Array<{
+            id: string;
+            name: string;
+            mentor_name: string | null;
+            judges: Array<{
+                id: string;
+                name: string;
+                communication: number;
+                funding: number;
+                presentation: number;
+                cohesion: number;
+                total: number;
+                time_spent_seconds: number;
+            }>;
+            total_score: number;
+            avg_score: number;
+        }>;
+        awards: Array<{
+            award_type: string;
+            team_id: string;
+            team_name: string;
+        }>;
+    }>;
+}> {
+    return get<any>('/events/recap');
+}

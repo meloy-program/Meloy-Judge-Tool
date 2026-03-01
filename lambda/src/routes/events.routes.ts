@@ -7,6 +7,119 @@ const router = Router();
 // ==================== EVENTS ====================
 
 /**
+ * Get completed events with detailed recap data (admin only)
+ * Returns all completed events with teams, judges, scores, and awards
+ */
+router.get('/recap', authenticate, requireRole(['admin']), async (_req, res): Promise<void> => {
+    try {
+        // Get all completed events
+        const events = await query(
+            `SELECT 
+                e.*,
+                json_build_object(
+                    'name', s.name,
+                    'logo_url', s.logo_url,
+                    'primary_color', s.primary_color,
+                    'secondary_color', s.secondary_color,
+                    'text_color', s.text_color
+                ) as sponsor
+            FROM events e
+            LEFT JOIN sponsors s ON e.sponsor_id = s.id
+            WHERE e.judging_phase = 'ended' OR e.status = 'completed'
+            ORDER BY e.start_date DESC`,
+            []
+        );
+
+        // For each event, get teams with detailed scores
+        const eventsWithData = await Promise.all(
+            events.map(async (event: any) => {
+                // Get teams for this event
+                const teams = await query(
+                    `SELECT id, name, mentor_name
+                     FROM teams
+                     WHERE event_id = $1
+                     ORDER BY name`,
+                    [event.id]
+                );
+
+                // For each team, get judge scores
+                const teamsWithScores = await Promise.all(
+                    teams.map(async (team: any) => {
+                        const judgeScores = await query(
+                            `SELECT 
+                                ej.id,
+                                ej.name,
+                                ss.time_spent_seconds,
+                                COALESCE(SUM(CASE WHEN rc.short_name = 'Communication' THEN s.score END), 0) as communication,
+                                COALESCE(SUM(CASE WHEN rc.short_name = 'Funding' THEN s.score END), 0) as funding,
+                                COALESCE(SUM(CASE WHEN rc.short_name = 'Presentation' THEN s.score END), 0) as presentation,
+                                COALESCE(SUM(CASE WHEN rc.short_name = 'Cohesion' THEN s.score END), 0) as cohesion,
+                                COALESCE(SUM(s.score), 0) as total
+                            FROM score_submissions ss
+                            JOIN event_judges ej ON ss.judge_id = ej.id
+                            LEFT JOIN scores s ON ss.id = s.submission_id
+                            LEFT JOIN rubric_criteria rc ON s.rubric_criteria_id = rc.id
+                            WHERE ss.team_id = $1 AND ss.submitted_at IS NOT NULL
+                            GROUP BY ej.id, ej.name, ss.time_spent_seconds`,
+                            [team.id]
+                        );
+
+                        const totalScore = judgeScores.reduce((sum: number, j: any) => sum + parseFloat(j.total), 0);
+                        const avgScore = judgeScores.length > 0 ? totalScore / judgeScores.length : 0;
+
+                        return {
+                            id: team.id,
+                            name: team.name,
+                            mentor_name: team.mentor_name,
+                            judges: judgeScores.map((j: any) => ({
+                                id: j.id,
+                                name: j.name,
+                                communication: parseFloat(j.communication),
+                                funding: parseFloat(j.funding),
+                                presentation: parseFloat(j.presentation),
+                                cohesion: parseFloat(j.cohesion),
+                                total: parseFloat(j.total),
+                                time_spent_seconds: j.time_spent_seconds || 0
+                            })),
+                            total_score: totalScore,
+                            avg_score: avgScore
+                        };
+                    })
+                );
+
+                // Get awards for this event
+                const awards = await query(
+                    `SELECT ta.award_type, ta.team_id, t.name as team_name
+                     FROM team_awards ta
+                     JOIN teams t ON ta.team_id = t.id
+                     WHERE ta.event_id = $1`,
+                    [event.id]
+                );
+
+                return {
+                    id: event.id,
+                    name: event.name,
+                    event_type: event.event_type,
+                    start_date: event.start_date,
+                    end_date: event.end_date,
+                    location: event.location,
+                    status: event.status,
+                    judging_phase: event.judging_phase,
+                    sponsor: event.sponsor,
+                    teams: teamsWithScores,
+                    awards: awards
+                };
+            })
+        );
+
+        res.json({ events: eventsWithData });
+    } catch (error) {
+        console.error('Failed to fetch recap data:', error);
+        res.status(500).json({ error: 'Failed to fetch recap data' });
+    }
+});
+
+/**
  * Get all events with role-based filtering
  * - Judges: Only see events they're assigned to via event_judges table
  * - Admins/Moderators: See all events
@@ -632,6 +745,160 @@ router.get('/:eventId/insights', authenticate, requireRole(['admin']), async (re
 });
 
 /**
+ * Export event results to Excel (admin only)
+ */
+router.get('/:eventId/export-excel', authenticate, requireRole(['admin']), async (req, res): Promise<void> => {
+    try {
+        const eventId = req.params.eventId;
+
+        // Get event details
+        const eventData = await queryOne(
+            `SELECT e.*, s.name as sponsor_name
+             FROM events e
+             LEFT JOIN sponsors s ON e.sponsor_id = s.id
+             WHERE e.id = $1`,
+            [eventId]
+        );
+
+        if (!eventData) {
+            res.status(404).json({ error: 'Event not found' });
+            return;
+        }
+
+        // Get teams with rankings
+        const teams = await query(
+            `WITH judge_totals AS (
+                SELECT 
+                    ss.team_id,
+                    ss.judge_id,
+                    COALESCE(SUM(s.score), 0) as judge_total
+                FROM score_submissions ss
+                LEFT JOIN scores s ON ss.id = s.submission_id
+                WHERE ss.submitted_at IS NOT NULL
+                GROUP BY ss.team_id, ss.judge_id
+            )
+            SELECT 
+                t.id,
+                t.name,
+                t.mentor_name,
+                COALESCE(ROUND(AVG(jt.judge_total)::numeric, 2), 0) as avg_score,
+                ROW_NUMBER() OVER (ORDER BY AVG(jt.judge_total) DESC) as rank
+            FROM teams t
+            LEFT JOIN judge_totals jt ON t.id = jt.team_id
+            WHERE t.event_id = $1
+            GROUP BY t.id, t.name, t.mentor_name
+            ORDER BY avg_score DESC`,
+            [eventId]
+        );
+
+        // Get judges
+        const judges = await query(
+            `SELECT id, name
+             FROM event_judges
+             WHERE event_id = $1
+             ORDER BY name`,
+            [eventId]
+        );
+
+        // Get detailed scores by criteria
+        const scores = await query(
+            `SELECT 
+                ss.team_id,
+                ss.judge_id,
+                ej.name as judge_name,
+                COALESCE(SUM(CASE WHEN rc.short_name = 'Communication' THEN s.score END), 0) as communication,
+                COALESCE(SUM(CASE WHEN rc.short_name = 'Funding' THEN s.score END), 0) as funding,
+                COALESCE(SUM(CASE WHEN rc.short_name = 'Presentation' THEN s.score END), 0) as presentation,
+                COALESCE(SUM(CASE WHEN rc.short_name = 'Cohesion' THEN s.score END), 0) as cohesion,
+                COALESCE(SUM(s.score), 0) as total
+            FROM score_submissions ss
+            JOIN event_judges ej ON ss.judge_id = ej.id
+            LEFT JOIN scores s ON ss.id = s.submission_id
+            LEFT JOIN rubric_criteria rc ON s.rubric_criteria_id = rc.id
+            WHERE ss.event_id = $1 AND ss.submitted_at IS NOT NULL
+            GROUP BY ss.team_id, ss.judge_id, ej.name`,
+            [eventId]
+        );
+
+        // Get awards
+        const awards = await query(
+            `SELECT team_id, award_type
+             FROM team_awards
+             WHERE event_id = $1`,
+            [eventId]
+        );
+
+        // Generate CSV content
+        let csv = '';
+        
+        // Header
+        csv += `${eventData.sponsor_name || 'Meloy Program'} - ${eventData.name}\n\n`;
+        
+        // Judges section
+        csv += 'Judges\n';
+        judges.forEach((judge: any, index: number) => {
+            csv += `Judge ${index + 1},${judge.name}\n`;
+        });
+        csv += '\n';
+        
+        // Teams section
+        csv += 'Teams\n';
+        teams.forEach((team: any, index: number) => {
+            csv += `Team ${index + 1},${team.name}\n`;
+            if (team.mentor_name) {
+                csv += `Mentor,${team.mentor_name}\n`;
+            }
+        });
+        csv += '\n\n';
+        
+        // Score Sheet
+        csv += 'Score Sheet\n';
+        csv += 'Team,Judge,Communication (25),Funding (25),Presentation (25),Cohesion (25),Total (100)\n';
+        teams.forEach((team: any) => {
+            judges.forEach((judge: any) => {
+                const scoreData = scores.find((s: any) => s.team_id === team.id && s.judge_id === judge.id);
+                csv += `${team.name},${judge.name},${scoreData?.communication || 0},${scoreData?.funding || 0},${scoreData?.presentation || 0},${scoreData?.cohesion || 0},${scoreData?.total || 0}\n`;
+            });
+        });
+        csv += '\n\n';
+        
+        // Final Results
+        csv += 'Final Results - Rankings\n';
+        csv += 'Rank,Team Name,Average Score\n';
+        teams.forEach((team: any) => {
+            csv += `${team.rank},${team.name},${team.avg_score}\n`;
+        });
+        csv += '\n';
+        
+        // Awards
+        csv += 'Special Awards\n';
+        const awardTypes = [
+            { type: 'first_place', label: 'First Place' },
+            { type: 'second_place', label: 'Second Place' },
+            { type: 'third_place', label: 'Third Place' },
+            { type: 'most_feasible', label: 'Most Feasible Solution' },
+            { type: 'best_prototype', label: 'Best Prototype' },
+            { type: 'best_video', label: 'Best Video' },
+            { type: 'best_presentation', label: 'Best Presentation' }
+        ];
+        
+        awardTypes.forEach(({ type, label }) => {
+            const award = awards.find((a: any) => a.award_type === type);
+            const team = award ? teams.find((t: any) => t.id === award.team_id) : null;
+            csv += `${label},${team?.name || '(Not Assigned)'}\n`;
+        });
+
+        // Send CSV
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="${eventData.name.replace(/[^a-z0-9]/gi, '_')}_Results.csv"`);
+        res.send(csv);
+    } catch (error) {
+        console.error('CSV export error:', error);
+        res.status(500).json({ error: 'Failed to generate CSV export' });
+    }
+});
+
+/**
  * Get online judges for an event
  */
 router.get('/:eventId/judges/online', async (req, res) => {
@@ -825,6 +1092,110 @@ router.get('/:eventId/my-progress', authenticate, async (req: AuthRequest, res) 
     } catch (error) {
         console.error('Error fetching judge progress:', error);
         return res.status(500).json({ error: 'Failed to fetch progress' });
+    }
+});
+
+// ==================== AWARDS ====================
+
+/**
+ * Get current top 3 awards for an event
+ */
+router.get('/:eventId/awards', authenticate, async (req, res) => {
+    try {
+        const awards = await query(
+            `SELECT ta.award_type, ta.team_id, t.name as team_name
+             FROM team_awards ta
+             JOIN teams t ON ta.team_id = t.id
+             WHERE ta.event_id = $1 AND ta.award_type IN ('first_place', 'second_place', 'third_place')
+             ORDER BY CASE ta.award_type
+                 WHEN 'first_place' THEN 1
+                 WHEN 'second_place' THEN 2
+                 WHEN 'third_place' THEN 3
+             END`,
+            [req.params.eventId]
+        );
+
+        return res.json({ awards });
+    } catch (error) {
+        console.error('Error fetching awards:', error);
+        return res.status(500).json({ error: 'Failed to fetch awards' });
+    }
+});
+
+/**
+ * Assign top 3 awards for an event (moderator/admin only)
+ * Body: { firstPlace: teamId, secondPlace?: teamId, thirdPlace?: teamId }
+ * Note: secondPlace and thirdPlace are optional for events with fewer teams
+ */
+router.post('/:eventId/awards', authenticate, requireRole(['admin', 'moderator']), async (req: AuthRequest, res) => {
+    try {
+        const { eventId } = req.params;
+        const { firstPlace, secondPlace, thirdPlace } = req.body;
+
+        // Validate that at least first place is provided
+        if (!firstPlace) {
+            return res.status(400).json({ error: 'First place is required' });
+        }
+
+        // Collect all provided places
+        const places = [firstPlace, secondPlace, thirdPlace].filter(Boolean);
+        
+        // Validate that all provided teams are different
+        const uniquePlaces = new Set(places);
+        if (uniquePlaces.size !== places.length) {
+            return res.status(400).json({ error: 'Each place must be a different team' });
+        }
+
+        // Verify all teams belong to this event
+        const teams = await query(
+            'SELECT id FROM teams WHERE event_id = $1 AND id = ANY($2::uuid[])',
+            [eventId, places]
+        );
+
+        if (teams.length !== places.length) {
+            return res.status(400).json({ error: 'One or more teams not found in this event' });
+        }
+
+        // Delete existing top 3 awards for this event
+        await query(
+            `DELETE FROM team_awards 
+             WHERE event_id = $1 AND award_type IN ('first_place', 'second_place', 'third_place')`,
+            [eventId]
+        );
+
+        // Insert new awards (only for provided places)
+        const insertValues: string[] = [];
+        const insertParams: any[] = [eventId, req.user!.id];
+        let paramIndex = 3;
+
+        if (firstPlace) {
+            insertValues.push(`($1, $${paramIndex}, 'first_place', $2)`);
+            insertParams.push(firstPlace);
+            paramIndex++;
+        }
+        if (secondPlace) {
+            insertValues.push(`($1, $${paramIndex}, 'second_place', $2)`);
+            insertParams.push(secondPlace);
+            paramIndex++;
+        }
+        if (thirdPlace) {
+            insertValues.push(`($1, $${paramIndex}, 'third_place', $2)`);
+            insertParams.push(thirdPlace);
+            paramIndex++;
+        }
+
+        if (insertValues.length > 0) {
+            await query(
+                `INSERT INTO team_awards (event_id, team_id, award_type, awarded_by)
+                 VALUES ${insertValues.join(', ')}`,
+                insertParams
+            );
+        }
+
+        return res.json({ message: 'Awards assigned successfully' });
+    } catch (error) {
+        console.error('Error assigning awards:', error);
+        return res.status(500).json({ error: 'Failed to assign awards' });
     }
 });
 

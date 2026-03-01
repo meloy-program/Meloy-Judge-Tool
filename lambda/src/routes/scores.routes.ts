@@ -29,20 +29,6 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
             return res.status(403).json({ error: 'Invalid judge profile for this event/user' });
         }
 
-        // Check if team is already completed (judges cannot re-score completed teams)
-        const teamStatus = await query(
-            'SELECT status FROM teams WHERE id = $1 AND event_id = $2',
-            [teamId, eventId]
-        );
-
-        if (!teamStatus || teamStatus.length === 0) {
-            return res.status(404).json({ error: 'Team not found' });
-        }
-
-        if (teamStatus[0].status === 'completed') {
-            return res.status(403).json({ error: 'Cannot score completed teams' });
-        }
-
         await transaction(async (client) => {
             // Create or update score submission
             const submissionResult = await client.query(
@@ -97,6 +83,69 @@ router.get('/rubric', async (_req, res) => {
         res.json({ criteria });
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch rubric' });
+    }
+});
+
+/**
+ * Get existing scores for a team by a judge (for editing)
+ */
+router.get('/:teamId/:judgeId', authenticate, async (req: AuthRequest, res) => {
+    try {
+        const { teamId, judgeId } = req.params;
+
+        // Verify judge profile belongs to the authenticated user
+        const judgeProfile = await query(
+            'SELECT id, event_id FROM event_judges WHERE id = $1 AND user_id = $2',
+            [judgeId, req.user!.id]
+        );
+
+        if (!judgeProfile || judgeProfile.length === 0) {
+            return res.status(403).json({ error: 'Invalid judge profile' });
+        }
+
+        // Get the score submission
+        const submission = await query(
+            `SELECT id, time_spent_seconds, submitted_at 
+             FROM score_submissions 
+             WHERE judge_id = $1 AND team_id = $2`,
+            [judgeId, teamId]
+        );
+
+        if (!submission || submission.length === 0) {
+            return res.json({ scores: [], comments: null, hasExistingScores: false });
+        }
+
+        const submissionId = submission[0].id;
+
+        // Get individual scores
+        const scores = await query(
+            `SELECT rubric_criteria_id, score, reflection 
+             FROM scores 
+             WHERE submission_id = $1`,
+            [submissionId]
+        );
+
+        // Get overall comments
+        const comments = await query(
+            `SELECT comments 
+             FROM judge_comments 
+             WHERE judge_id = $1 AND team_id = $2`,
+            [judgeId, teamId]
+        );
+
+        return res.json({
+            scores: scores.map((s: any) => ({
+                criteriaId: s.rubric_criteria_id,
+                score: s.score,
+                reflection: s.reflection
+            })),
+            comments: comments.length > 0 ? comments[0].comments : null,
+            timeSpentSeconds: submission[0].time_spent_seconds,
+            hasExistingScores: true
+        });
+    } catch (error: any) {
+        console.error('Fetch scores error:', error);
+        return res.status(500).json({ error: 'Failed to fetch scores', details: error.message });
     }
 });
 
